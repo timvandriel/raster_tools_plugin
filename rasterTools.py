@@ -24,7 +24,7 @@
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMenu
+from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -101,27 +101,47 @@ class RasterTools:
     def initGui(self):
         icon_path = ":/plugins/rasterTools/icon.png"
 
-        # Create the "Raster Tools" submenu
+        # ----- Add to Raster > Raster Tools menu -----
         raster_menu = self.iface.rasterMenu()
         self.raster_tools_menu = QMenu(self.tr("Raster Tools"), self.iface.mainWindow())
         raster_menu.addMenu(self.raster_tools_menu)
 
-        # Add actions to the submenu instead of directly to raster menu
-        action1 = QAction(
+        # Create actions
+        self.delivered_cost_action = QAction(
             QIcon(icon_path), self.tr("Delivered Cost"), self.iface.mainWindow()
         )
-        action1.triggered.connect(self.open_delivered_cost_dockwidget)
-        self.raster_tools_menu.addAction(action1)
-        self.actions.append(action1)
-        self.toolbar.addAction(action1)
+        self.delivered_cost_action.triggered.connect(
+            self.open_delivered_cost_dockwidget
+        )
+        self.raster_tools_menu.addAction(self.delivered_cost_action)
 
-        action2 = QAction(
+        self.lazy_raster_action = QAction(
             QIcon(icon_path), self.tr("Lazy Raster Calculator"), self.iface.mainWindow()
         )
-        action2.triggered.connect(self.open_raster_calculator_dockwidget)
-        self.raster_tools_menu.addAction(action2)
-        self.actions.append(action2)
-        self.toolbar.addAction(action2)
+        self.lazy_raster_action.triggered.connect(
+            self.open_raster_calculator_dockwidget
+        )
+        self.raster_tools_menu.addAction(self.lazy_raster_action)
+
+        self.actions.append(self.delivered_cost_action)
+        self.actions.append(self.lazy_raster_action)
+
+        # ----- Create a single toolbar button with a dropdown menu -----
+        self.toolbar = self.iface.addToolBar("Raster Tools Suite")
+
+        self.tool_button = QToolButton()
+        self.tool_button.setIcon(QIcon(icon_path))
+        self.tool_button.setToolTip("Raster Tools Suite")
+        self.tool_button.setPopupMode(QToolButton.InstantPopup)  # dropdown on click
+
+        # Create the dropdown menu
+        menu = QMenu()
+        menu.addAction(self.delivered_cost_action)
+        menu.addAction(self.lazy_raster_action)
+        self.tool_button.setMenu(menu)
+
+        # Add button to toolbar
+        self.toolbar.addWidget(self.tool_button)
 
     def open_delivered_cost_dockwidget(self):
         if self.delivered_cost_dockwidget is None:
@@ -144,21 +164,20 @@ class RasterTools:
         self.raster_calculator_dockwidget.raise_()
 
     def unload(self):
-        # Remove actions from toolbar and submenu
         for action in self.actions:
             self.raster_tools_menu.removeAction(action)
-            self.toolbar.removeAction(action)
 
-        # Remove the submenu from the Raster menu
         raster_menu = self.iface.rasterMenu()
         if self.raster_tools_menu:
             raster_menu.removeAction(self.raster_tools_menu.menuAction())
             self.raster_tools_menu = None
 
-        # Remove toolbar
+        if self.tool_button:
+            self.toolbar.removeAction(self.tool_button.defaultAction())
+            self.tool_button = None
+
         del self.toolbar
 
-        # Close dockwidgets if open
         if self.delivered_cost_dockwidget:
             self.delivered_cost_dockwidget.close()
             self.delivered_cost_dockwidget = None

@@ -253,7 +253,7 @@ def _run(
     saw = saw.to_crs(5070)
     s_area = s_area.to_crs(5070)
 
-    maybe_log(log, "Getting Elevation Data...")
+    maybe_log(log, "Getting elevation Data...")
     if pbar is not None:
         pbar.setValue(pbar.value() + 1)
     from shapely.validation import explain_validity
@@ -399,7 +399,7 @@ def _run(
         pbar.setValue(pbar.maximum())
 
     runcnt += 1
-    maybe_log(log, "Finsihed all processing.")
+    maybe_log(log, "Finished all processing.")
 
     return outdic, runcnt
 

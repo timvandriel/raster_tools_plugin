@@ -219,6 +219,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.pickPointButton.clicked.connect(self.activate_point_picker)
         self.facility_coords = []  # Store picked point coordinates
         self.facility_layer = None
+        self.facility_layer_id = None
 
         # Connect shapefile selection buttons
         self.userRoadsButton.clicked.connect(self.select_roads_shapefile)

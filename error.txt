@@ -1,4 +1,3 @@
-
 Traceback (most recent call last):
   File "/Users/timvandriel/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/rasterTools/delivered_cost/delvCost.py", line 92, in get_3dep_data
     out_rs = py3dep.get_dem(sgeo, res, 4326).expand_dims({"band": 1})
@@ -38,3 +37,9 @@ Traceback (most recent call last):
   File "/Users/timvandriel/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/rasterTools/delivered_cost/delvCost.py", line 94, in get_3dep_data
     raise RuntimeError(f"Failed to download DEM from py3dep: {e}") from e
 RuntimeError: Failed to download DEM from py3dep: Shell empty after removing invalid points
+
+Exception ignored in: 'pyproj._context.pyproj_log_function'
+Traceback (most recent call last):
+  File "/Users/timvandriel/miniforge3/envs/qgis-env/lib/python3.12/site-packages/pyproj/transformer.py", line 840, in transform
+    self._transformer._transform(
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfb in position 86: invalid start byte
