@@ -1,0 +1,40 @@
+
+Traceback (most recent call last):
+  File "/Users/timvandriel/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/rasterTools/delivered_cost/delvCost.py", line 92, in get_3dep_data
+    out_rs = py3dep.get_dem(sgeo, res, 4326).expand_dims({"band": 1})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timvandriel/miniforge3/envs/qgis-env/lib/python3.12/site-packages/py3dep/py3dep.py", line 276, in get_dem
+    buff = _geometry.buffer(20 * resolution).bounds
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timvandriel/miniforge3/envs/qgis-env/lib/python3.12/site-packages/shapely/decorators.py", line 173, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timvandriel/miniforge3/envs/qgis-env/lib/python3.12/site-packages/shapely/geometry/base.py", line 595, in buffer
+    return shapely.buffer(
+           ^^^^^^^^^^^^^^^
+  File "/Users/timvandriel/miniforge3/envs/qgis-env/lib/python3.12/site-packages/shapely/decorators.py", line 173, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timvandriel/miniforge3/envs/qgis-env/lib/python3.12/site-packages/shapely/decorators.py", line 88, in wrapped
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timvandriel/miniforge3/envs/qgis-env/lib/python3.12/site-packages/shapely/constructive.py", line 246, in buffer
+    return lib.buffer(
+           ^^^^^^^^^^^
+shapely.errors.GEOSException: Shell empty after removing invalid points
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/timvandriel/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/rasterTools/delivered_cost/workers.py", line 53, in run
+    result = run(**self.args)
+             ^^^^^^^^^^^^^^^^
+  File "/Users/timvandriel/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/rasterTools/delivered_cost/delvCost.py", line 424, in run
+    outdic, runcnt = _run(
+                     ^^^^^
+  File "/Users/timvandriel/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/rasterTools/delivered_cost/delvCost.py", line 258, in _run
+    elv = get_3dep_data(ply, 30, out_crs=s_area.crs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timvandriel/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/rasterTools/delivered_cost/delvCost.py", line 94, in get_3dep_data
+    raise RuntimeError(f"Failed to download DEM from py3dep: {e}") from e
+RuntimeError: Failed to download DEM from py3dep: Shell empty after removing invalid points
