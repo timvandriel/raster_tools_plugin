@@ -11,8 +11,10 @@ import numpy as np
 
 import py3dep
 import tempfile
-import elevation
+
+# import elevation
 import rioxarray
+
 from qgis.core import QgsProcessingUtils
 
 
@@ -74,29 +76,28 @@ def get_osm_data(
 
 def get_3dep_data(sgeo, res=30, out_crs=None):
     """
-    downloads 3dep data and returns a raster object
+    Downloads 3dep data and returns a raster object.
     """
-    # Defensive checks
     from shapely.validation import explain_validity
     from shapely.geometry import Polygon
 
     if not isinstance(sgeo, Polygon):
         raise TypeError(f"Expected shapely Polygon, got {type(sgeo)}")
     if not sgeo.is_valid:
-        raise ValueError(f"Invalid geometry: {explain_validity(sgeo)}")
-    if sgeo.area < 1e-8:
-        raise ValueError("Geometry too small to request DEM.")
-    # sgeo = sgeo.buffer(0)  # This often fixes small topological issues
+        raise ValueError(f"Invalid input geometry: {explain_validity(sgeo)}")
 
-    # # Additional check after cleaning
-    # if not sgeo.is_valid:
-    #     raise ValueError(
-    #         f"Geometry became invalid after cleaning: {explain_validity(sgeo)}"
-    #     )
-    # if sgeo.is_empty:
-    #     raise ValueError("Geometry became empty after cleaning")
     try:
-        out_rs = py3dep.get_dem(sgeo, res, 4326).expand_dims({"band": 1})
+        # Convert to target CRS (EPSG:3857, meters)
+        sgeo_3857 = gpd.GeoSeries([sgeo], crs=4326).to_crs(3857)[0]
+        print(f"Reprojected area: {sgeo_3857.area} m²")
+
+        # Validate after reprojection
+        if not sgeo_3857.is_valid:
+            print("Geometry invalid after reprojection:", explain_validity(sgeo_3857))
+        if sgeo_3857.is_empty:
+            raise ValueError("Geometry became empty after reprojection")
+
+        out_rs = py3dep.get_dem(sgeo_3857, res, 3857).expand_dims({"band": 1})
     except Exception as e:
         raise RuntimeError(f"Failed to download DEM from py3dep: {e}") from e
 
@@ -210,7 +211,6 @@ def _run(
     s_area = gpd.GeoDataFrame(geometry=polys, crs=4326)
 
     ext = saw.union(s_area.unary_union).buffer(0.15)
-    print(f"DEBUG: ext geometry type: {type(ext)}")
     ply = box(*ext.total_bounds)
 
     osm_rds = {
