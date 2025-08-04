@@ -221,10 +221,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.facility_layer = None
         self.facility_layer_id = None
 
-        # Connect shapefile selection buttons
-        self.userRoadsButton.clicked.connect(self.select_roads_shapefile)
-        self.userBarriersButton.clicked.connect(self.select_barriers_shapefile)
-
         # Connect run button
         self.runButton.clicked.connect(self.run_delivered_cost)
 
@@ -385,22 +381,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.facility_layer.triggerRepaint()
         iface.mapCanvas().refresh()
 
-    def select_roads_shapefile(self):
-        filename, _ = QFileDialog.getOpenFileName(
-            self, "Select User Specified Roads Shapefile", "", "Shapefiles (*.shp)"
-        )
-        if filename:
-            self.userRoadsLineEdit.setText(filename)
-            self.lyr_roads_path = filename
-
-    def select_barriers_shapefile(self):
-        filename, _ = QFileDialog.getOpenFileName(
-            self, "Select User Specified Barriers Shapefile", "", "Shapefiles (*.shp)"
-        )
-        if filename:
-            self.userBarriersLineEdit.setText(filename)
-            self.lyr_barriers_path = filename
-
     def log_to_textbox(self, message):
         self.plainTextEdit.appendPlainText(str(message))
 
@@ -491,10 +471,8 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
         cb_o = self.optionalSurfacesCheckBox.isChecked()
 
-        if self.userRoadsLineEdit.text() == "(Optional)":
-            self.lyr_roads_path = None
-        if self.userBarriersLineEdit.text() == "(Optional)":
-            self.lyr_barriers_path = None
+        self.lyr_roads_path = None
+        self.lyr_barriers_path = None
         args = {
             "study_area_coords": study_area_coords,
             "saw_coords": saw_coords,
@@ -568,8 +546,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         for checkbox in self.layer_configs.keys():
             checkbox.setChecked(False)
 
-        self.userRoadsLineEdit.setText("(Optional)")
-        self.userBarriersLineEdit.setText("(Optional)")
         self.closingPlugin.emit()
         event.accept()
 
