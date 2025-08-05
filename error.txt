@@ -43,3 +43,34 @@ Traceback (most recent call last):
   File "/Users/timvandriel/miniforge3/envs/qgis-env/lib/python3.12/site-packages/pyproj/transformer.py", line 840, in transform
     self._transformer._transform(
 UnicodeDecodeError: 'utf-8' codec can't decode byte 0xfb in position 86: invalid start byte
+
+
+
+
+------------------------------------------------------------------------------------------
+Error: Command 'make -C C:\Users\Tim\AppData\Local\bopen\elevation\Cache\SRTM1 download ENSURE_TILES="N46/N46W115.tif N46/N46W114.tif"' returned non-zero exit status 1.
+Traceback (most recent call last):
+  File "C:\Users/Tim/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\delivered_cost-new_layout\workers.py", line 53, in run
+    result = run(**self.args)
+             ^^^^^^^^^^^^^^^^
+  File "C:\Users/Tim/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\delivered_cost-new_layout\delvCost.py", line 424, in run
+    outdic, runcnt = _run(
+                     ^^^^^
+  File "C:\Users/Tim/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\delivered_cost-new_layout\delvCost.py", line 258, in _run
+    elv = get_3dep_data(ply, 30, out_crs=s_area.crs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users/Tim/AppData/Roaming/QGIS/QGIS3\profiles\default/python/plugins\delivered_cost-new_layout\delvCost.py", line 128, in get_3dep_data
+    elevation.clip(
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\elevation\datasource.py", line 216, in clip
+    datasource_root = seed(bounds=bounds, **kwargs)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\elevation\datasource.py", line 188, in seed
+    ensure_tiles(datasource_root, ensure_tiles_names, **kwargs)
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\elevation\datasource.py", line 148, in ensure_tiles
+    return util.check_call_make(path, targets=['download'], variables=variables_items, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\OSGeo4W\apps\Python312\Lib\site-packages\elevation\util.py", line 88, in check_call_make
+    subprocess.check_call(cmd, shell=True)
+  File "C:\OSGeo4W\apps\Python312\Lib\subprocess.py", line 413, in check_call
+    raise CalledProcessError(retcode, cmd)
+subprocess.CalledProcessError: Command 'make -C C:\Users\Tim\AppData\Local\bopen\elevation\Cache\SRTM1 download ENSURE_TILES="N46/N46W115.tif N46/N46W114.tif"' returned non-zero exit status 1.

@@ -43,6 +43,7 @@ from qgis.core import (
     QgsSingleBandPseudoColorRenderer,
     QgsRasterBandStats,
     QgsMarkerSymbol,
+    QgsWkbTypes,
 )
 from qgis.gui import QgsMapToolPan, QgsVertexMarker
 from qgis.utils import iface
@@ -208,10 +209,16 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 self.logTruckPayloadSpinBox, self.logTruckPayloadSlider
             )
         )
+        # Initialize AOI and Facility comboboxes
+        self.setup_layer_listeners()
+        self.populate_layer_comboboxes()
+
         # Initialize the draw polygon tool
         self.drawTool = DrawPolygonTool(iface.mapCanvas())
         self.drawTool.polygonCompleted.connect(self.handle_polygon_completed)
         self.drawPolygonButton.clicked.connect(self.activate_draw_tool)
+        self.aoi_geometry = None  # Store drawn polygon geometry
+        self.aoi_layer_id = None  # Store AOI layer ID
 
         # Initialize pick point tool
         self.pointTool = PickPointTool(iface.mapCanvas())
@@ -255,6 +262,63 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             self.facility_layer_id = None
             self.facility_coords = []
             self.facility_layer = None
+        if self.aoi_layer_id == layer_id:
+            self.aoi_layer_id = None
+            self.aoi_geometry = None
+
+    def populate_layer_comboboxes(self):
+        self.aoiComboBox.clear()
+        self.pointComboBox.clear()
+        self.aoiComboBox.addItem("Select AOI Layer or create new", None)
+        self.aoiComboBox.setCurrentIndex(0)
+        self.pointComboBox.addItem("Select Facility Layer or create new", None)
+        self.pointComboBox.setCurrentIndex(0)
+        for layer in QgsProject.instance().mapLayers().values():
+            if isinstance(layer, QgsVectorLayer):
+                geom_type = layer.geometryType()
+
+                if geom_type == QgsWkbTypes.PolygonGeometry:
+                    self.aoiComboBox.addItem(layer.name(), layer.id())
+                elif geom_type == QgsWkbTypes.PointGeometry:
+                    self.pointComboBox.addItem(layer.name(), layer.id())
+
+    def setup_layer_listeners(self):
+        QgsProject.instance().layersAdded.connect(self.populate_layer_comboboxes)
+        QgsProject.instance().layersRemoved.connect(self.populate_layer_comboboxes)
+        QgsProject.instance().layerWasAdded.connect(self.populate_layer_comboboxes)
+
+    def get_selected_aoi_layer(self):
+        layer_id = self.aoiComboBox.currentData()
+        if layer_id is None:
+            return None
+        return QgsProject.instance().mapLayer(layer_id)
+
+    def get_selected_aoi_geometry(self):
+        aoi_layer = self.get_selected_aoi_layer()
+        if aoi_layer is None or not aoi_layer.isValid():
+            return None
+
+        # Get the first feature's geometry
+        feature = next(aoi_layer.getFeatures())
+        self.aoi_geometry = feature.geometry()
+        return aoi_layer.crs()
+
+    def get_selected_facility_layer(self):
+        layer_id = self.pointComboBox.currentData()
+        if layer_id is None:
+            return None
+        return QgsProject.instance().mapLayer(layer_id)
+
+    def get_selected_facility_coords(self):
+        facility_layer = self.get_selected_facility_layer()
+        if facility_layer is None or not facility_layer.isValid():
+            return None
+
+        # Get all features' geometries
+        for feature in facility_layer.getFeatures():
+            geom = feature.geometry()
+            self.facility_coords.append((geom.asPoint().x(), geom.asPoint().y()))
+        return facility_layer.crs()
 
     def zoom_to_us_extent_3857(self):
         # Approximate extent for continental U.S. in EPSG:3857 (Web Mercator)
@@ -351,9 +415,9 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             # Apply black dot symbology
             symbol = QgsMarkerSymbol.createSimple(
                 {
-                    "name": "circle",
+                    "name": "cross_fill",
                     "color": "black",
-                    "size": "3",
+                    "size": "2",
                 }
             )
             self.facility_layer.renderer().setSymbol(symbol)
@@ -431,6 +495,31 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
     def run_delivered_cost(self):
         self.plainTextEdit.clear()
+        aoi_crs = self.get_selected_aoi_geometry()
+        print(self.aoi_geometry)
+        if aoi_crs is None:
+            study_area_coords = qgs_to_coords_list_epsg4326(self.aoi_geometry)
+        else:
+            study_area_coords = qgs_to_coords_list_epsg4326(
+                self.aoi_geometry, source_crs=aoi_crs
+            )
+
+        facility_crs = self.get_selected_facility_coords()
+        print(self.facility_coords)
+        if facility_crs is None:
+            saw_coords = [
+                qgs_to_coords_list_epsg4326(QgsPointXY(pt[0], pt[1]))
+                for pt in self.facility_coords
+            ]
+        else:
+            saw_coords = [
+                qgs_to_coords_list_epsg4326(
+                    QgsPointXY(pt[0], pt[1]), source_crs=facility_crs
+                )
+                for pt in self.facility_coords
+            ]
+        print("Facility Coords:", self.facility_coords)
+        print("AOI Geometry:", self.aoi_geometry)
         if not self.facility_coords:
             QMessageBox.warning(
                 self,
@@ -445,13 +534,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 "Please draw an area of interest polygon before running the analysis.",
             )
             return
-
-        study_area_coords = qgs_to_coords_list_epsg4326(self.aoi_geometry)
-
-        saw_coords = [
-            qgs_to_coords_list_epsg4326(QgsPointXY(pt[0], pt[1]))
-            for pt in self.facility_coords
-        ]
 
         tr_s = self.rtSpdSpinBox.value()
         cb_s = self.skylineSpdSpinBox.value()
@@ -504,12 +586,19 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             worker.signals.finished.connect(self.handle_results)
             worker.signals.error.connect(self.show_error)
             self.threadpool.start(worker)
+            self.facility_coords = []  # Reset after running
+            self.aoi_geometry = None  # Reset after running
+            self.aoi_layer_id = None  # Reset after running
+            self.facility_layer_id = None  # Reset after running
+            self.facility_layer = None  # Reset after running
         except Exception as e:
             self.log_to_textbox(f"Error initializing worker: {str(e)}")
             self.runButton.setEnabled(True)
             return
 
     def closeEvent(self, event):
+        self.facility_coords = []
+        self.aoi_geometry = None
         if hasattr(self, "osm_layer_id") and self.osm_layer_id:
             layer = QgsProject.instance().mapLayer(self.osm_layer_id)
             if layer:
@@ -521,15 +610,17 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 QgsProject.instance().removeMapLayer(layer)
             self.aoi_layer_id = None
 
-        if hasattr(self, "draw_polygon_tool") and self.draw_polygon_tool:
-            self.draw_polygon_tool.deactivate()
-
         if hasattr(self, "facility_layer_id") and self.facility_layer_id:
             layer = QgsProject.instance().mapLayer(self.facility_layer_id)
             if layer:
                 QgsProject.instance().removeMapLayer(layer)
             self.facility_layer_id = None
-            self.facility_coords = []
+
+        if hasattr(self, "draw_polygon_tool") and self.draw_polygon_tool:
+            self.draw_polygon_tool.deactivate()
+
+        if hasattr(self, "pointTool") and self.pointTool:
+            self.pointTool.deactivate()
 
         # Switch back to pan tool explicitly
         pan_tool = QgsMapToolPan(iface.mapCanvas())
@@ -557,7 +648,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         super(DeliveredCostDockWidget, self).showEvent(event)
 
 
-def qgs_to_coords_list_epsg4326(geom):
+def qgs_to_coords_list_epsg4326(geom, source_crs=None):
     """
     Convert a QgsGeometry or QgsPointXY from project CRS to EPSG:4326 and
     return a list of coordinates.
@@ -572,7 +663,11 @@ def qgs_to_coords_list_epsg4326(geom):
         list of (lon, lat) tuples
     """
     # Get source CRS (usually project CRS)
-    src_crs = QgsProject.instance().crs()
+    print("Source CRS:", source_crs)
+    if source_crs is None:
+        src_crs = QgsProject.instance().crs()
+    else:
+        src_crs = source_crs
     dest_crs = QgsCoordinateReferenceSystem("EPSG:4326")
 
     # Setup coordinate transformer
@@ -583,24 +678,25 @@ def qgs_to_coords_list_epsg4326(geom):
         geom = QgsGeometry.fromPointXY(geom)
 
     # Transform geometry to EPSG:4326
-    geom.transform(transform)
+    if src_crs != dest_crs:
+        print("Transforming geometry from", src_crs.authid(), "to", dest_crs.authid())
+        geom = geom.transform(transform)
 
     # Convert to shapely geometry via GeoJSON dict
     import json
-    from shapely.geometry import shape, Point, Polygon
+    from shapely.geometry import shape, Point, Polygon, MultiPolygon
 
     geojson_dict = json.loads(geom.asJson())
     shapely_geom = shape(geojson_dict)
 
-    # Extract coordinates depending on geometry type
     if isinstance(shapely_geom, Point):
-        # Return list with one coordinate tuple
         return [(shapely_geom.x, shapely_geom.y)]
     elif isinstance(shapely_geom, Polygon):
-        # Return list of coords of exterior ring only
         return list(shapely_geom.exterior.coords)
+    elif isinstance(shapely_geom, MultiPolygon):
+        # Take only the first polygon for simplicity
+        return list(shapely_geom.geoms[0].exterior.coords)
     else:
-        # For other geometry types you might want to handle differently
         raise ValueError(f"Unsupported geometry type: {type(shapely_geom)}")
 
 
