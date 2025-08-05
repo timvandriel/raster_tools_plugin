@@ -269,12 +269,20 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
     def populate_layer_comboboxes(self):
         self.aoiComboBox.clear()
         self.pointComboBox.clear()
+        self.roadsComboBox.clear()
+        self.barriersComboBox.clear()
         self.aoiComboBox.addItem("Select AOI Layer or create new", None)
         self.aoiComboBox.setCurrentIndex(0)
         self.pointComboBox.addItem("Select Facility Layer or create new", None)
         self.pointComboBox.setCurrentIndex(0)
+        self.roadsComboBox.addItem("Select Roads Layer (Optional)", None)
+        self.roadsComboBox.setCurrentIndex(0)
+        self.barriersComboBox.addItem("Select Barriers Layer (Optional)", None)
+        self.barriersComboBox.setCurrentIndex(0)
         for layer in QgsProject.instance().mapLayers().values():
             if isinstance(layer, QgsVectorLayer):
+                self.roadsComboBox.addItem(layer.name(), layer.id())
+                self.barriersComboBox.addItem(layer.name(), layer.id())
                 geom_type = layer.geometryType()
 
                 if geom_type == QgsWkbTypes.PolygonGeometry:
@@ -534,6 +542,24 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 "Please draw an area of interest polygon before running the analysis.",
             )
             return
+        if self.roadsComboBox.currentData() is not None:
+            layer = QgsProject.instance().mapLayer(self.roadsComboBox.currentData())
+            if layer_has_speed_field(layer):
+                self.lyr_roads_path = layer.source()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Roads Layer",
+                    "The selected roads layer does not have a 'speed' field. Please select a valid roads layer.",
+                )
+                return
+        else:
+            self.lyr_roads_path = None
+        if self.barriersComboBox.currentData() is not None:
+            layer = QgsProject.instance().mapLayer(self.barriersComboBox.currentData())
+            self.lyr_barriers_path = layer.source()
+        else:
+            self.lyr_barriers_path = None
 
         tr_s = self.rtSpdSpinBox.value()
         cb_s = self.skylineSpdSpinBox.value()
@@ -552,9 +578,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         lt_p = self.logTruckPayloadSpinBox.value()
 
         cb_o = self.optionalSurfacesCheckBox.isChecked()
-
-        self.lyr_roads_path = None
-        self.lyr_barriers_path = None
         args = {
             "study_area_coords": study_area_coords,
             "saw_coords": saw_coords,
@@ -591,6 +614,9 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             self.aoi_layer_id = None  # Reset after running
             self.facility_layer_id = None  # Reset after running
             self.facility_layer = None  # Reset after running
+            self.lyr_barriers_path = None  # Reset after running
+            self.lyr_roads_path = None  # Reset after running
+
         except Exception as e:
             self.log_to_textbox(f"Error initializing worker: {str(e)}")
             self.runButton.setEnabled(True)
@@ -738,3 +764,7 @@ def apply_capped_symbology(raster_layer, cap_value=1000):
     raster_layer.setCustomProperty("contrastEnhancementMinMax", "User")
 
     raster_layer.triggerRepaint()
+
+
+def layer_has_speed_field(layer: QgsVectorLayer) -> bool:
+    return "speed" in [f.name().lower() for f in layer.fields()]

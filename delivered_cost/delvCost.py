@@ -234,6 +234,8 @@ def _run(
         rds = get_osm_data(ply, osm_rds, out_crs=s_area.crs).reset_index()
     else:
         rds = open_vectors(lyr_roads_path).data.compute()
+        if rds.crs != s_area.crs:
+            rds = rds.to_crs(s_area.crs)
 
     if lyr_barriers_path is None:
         maybe_log(log, "Getting stream data...")
@@ -243,6 +245,8 @@ def _run(
     else:
         # if barriers vector file is provided, load barriers but set streams and waterbodies as empty GeoDataFrames to avoid errors
         barv = open_vectors(lyr_barriers_path).compute()
+        if barv.crs != s_area.crs:
+            barv = barv.to_crs(s_area.crs)
         strms = gpd.GeoDataFrame(geometry=[], crs=s_area.crs)
         wtrbd = gpd.GeoDataFrame(geometry=[], crs=s_area.crs)
 
