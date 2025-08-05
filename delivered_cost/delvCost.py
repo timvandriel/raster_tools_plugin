@@ -273,6 +273,12 @@ def _run(
     if pbar is not None:
         pbar.setValue(pbar.value() + 1)
 
+    # handle roads
+    if "maxspeed" in rds.columns:
+        rds["maxspeed"] = rds["maxspeed"].astype(str)
+    else:
+        rds["maxspeed"] = ""
+
     rds["speed"] = rds["highway"].map(h_speed)
     tms = rds.maxspeed.str.slice(0, 2)
     tms = tms.where(tms.str.isnumeric(), 25).astype(float)

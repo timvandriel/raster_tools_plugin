@@ -267,28 +267,53 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             self.aoi_geometry = None
 
     def populate_layer_comboboxes(self):
+        # Save current selections
+        aoi_id = self.aoiComboBox.currentData()
+        point_id = self.pointComboBox.currentData()
+        roads_id = self.roadsComboBox.currentData()
+        barriers_id = self.barriersComboBox.currentData()
+
+        # Clear and re-add default items
         self.aoiComboBox.clear()
         self.pointComboBox.clear()
         self.roadsComboBox.clear()
         self.barriersComboBox.clear()
+
         self.aoiComboBox.addItem("Select AOI Layer or create new", None)
-        self.aoiComboBox.setCurrentIndex(0)
         self.pointComboBox.addItem("Select Facility Layer or create new", None)
-        self.pointComboBox.setCurrentIndex(0)
         self.roadsComboBox.addItem("Select Roads Layer (Optional)", None)
-        self.roadsComboBox.setCurrentIndex(0)
         self.barriersComboBox.addItem("Select Barriers Layer (Optional)", None)
-        self.barriersComboBox.setCurrentIndex(0)
+
+        # Track mapping from layer ID to combo index
+        aoi_index_map = {None: 0}
+        point_index_map = {None: 0}
+        roads_index_map = {None: 0}
+        barriers_index_map = {None: 0}
+
         for layer in QgsProject.instance().mapLayers().values():
             if isinstance(layer, QgsVectorLayer):
-                self.roadsComboBox.addItem(layer.name(), layer.id())
-                self.barriersComboBox.addItem(layer.name(), layer.id())
+                layer_id = layer.id()
+                layer_name = layer.name()
                 geom_type = layer.geometryType()
 
+                # Add to combo boxes
+                self.roadsComboBox.addItem(layer_name, layer_id)
+                roads_index_map[layer_id] = self.roadsComboBox.count() - 1
+                self.barriersComboBox.addItem(layer_name, layer_id)
+                barriers_index_map[layer_id] = self.barriersComboBox.count() - 1
+
                 if geom_type == QgsWkbTypes.PolygonGeometry:
-                    self.aoiComboBox.addItem(layer.name(), layer.id())
+                    self.aoiComboBox.addItem(layer_name, layer_id)
+                    aoi_index_map[layer_id] = self.aoiComboBox.count() - 1
                 elif geom_type == QgsWkbTypes.PointGeometry:
-                    self.pointComboBox.addItem(layer.name(), layer.id())
+                    self.pointComboBox.addItem(layer_name, layer_id)
+                    point_index_map[layer_id] = self.pointComboBox.count() - 1
+
+        # Restore previous selections if still present
+        self.aoiComboBox.setCurrentIndex(aoi_index_map.get(aoi_id, 0))
+        self.pointComboBox.setCurrentIndex(point_index_map.get(point_id, 0))
+        self.roadsComboBox.setCurrentIndex(roads_index_map.get(roads_id, 0))
+        self.barriersComboBox.setCurrentIndex(barriers_index_map.get(barriers_id, 0))
 
     def setup_layer_listeners(self):
         QgsProject.instance().layersAdded.connect(self.populate_layer_comboboxes)
@@ -391,7 +416,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
     def handle_polygon_completed(self, geom):
         project_crs = QgsProject.instance().crs()
         geom = QgsGeometry(geom)
-        self.aoi_geometry = geom
+        # self.aoi_geometry = geom
 
         # Create the layer
         aoi_layer = QgsVectorLayer(
@@ -399,6 +424,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         )
         QgsProject.instance().addMapLayer(aoi_layer)
         self.aoi_layer_id = aoi_layer.id()  # Store only the ID
+        self.aoiComboBox.setCurrentIndex(self.aoiComboBox.findData(self.aoi_layer_id))
 
         pr = aoi_layer.dataProvider()
         feat = QgsFeature()
@@ -419,13 +445,16 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             )
             QgsProject.instance().addMapLayer(self.facility_layer)
             self.facility_layer_id = self.facility_layer.id()
+            self.pointComboBox.setCurrentIndex(
+                self.pointComboBox.findData(self.facility_layer_id)
+            )
 
             # Apply black dot symbology
             symbol = QgsMarkerSymbol.createSimple(
                 {
                     "name": "cross_fill",
                     "color": "black",
-                    "size": "2",
+                    "size": "3",
                 }
             )
             self.facility_layer.renderer().setSymbol(symbol)
@@ -441,7 +470,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         )
 
     def handle_point_picked(self, point):
-        self.facility_coords.append((point.x(), point.y()))
+        # self.facility_coords.append((point.x(), point.y()))
         geom = QgsGeometry.fromPointXY(point)
 
         # Add the new point to the same memory layer
@@ -544,13 +573,13 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             return
         if self.roadsComboBox.currentData() is not None:
             layer = QgsProject.instance().mapLayer(self.roadsComboBox.currentData())
-            if layer_has_speed_field(layer):
+            if layer_correct_fields(layer):
                 self.lyr_roads_path = layer.source()
             else:
                 QMessageBox.warning(
                     self,
                     "Invalid Roads Layer",
-                    "The selected roads layer does not have a 'speed' field. Please select a valid roads layer.",
+                    "The selected roads layer does not have a 'highway' field. The 'highway' field must be filled with one of the following: motorway, trunk, primary, secondary, tertiary, unclassified, residential. The 'maxspeed' field is optional and may be left blank. Please select a valid roads layer.",
                 )
                 return
         else:
@@ -609,14 +638,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             worker.signals.finished.connect(self.handle_results)
             worker.signals.error.connect(self.show_error)
             self.threadpool.start(worker)
-            self.facility_coords = []  # Reset after running
-            self.aoi_geometry = None  # Reset after running
-            self.aoi_layer_id = None  # Reset after running
-            self.facility_layer_id = None  # Reset after running
-            self.facility_layer = None  # Reset after running
-            self.lyr_barriers_path = None  # Reset after running
-            self.lyr_roads_path = None  # Reset after running
-
         except Exception as e:
             self.log_to_textbox(f"Error initializing worker: {str(e)}")
             self.runButton.setEnabled(True)
@@ -706,7 +727,7 @@ def qgs_to_coords_list_epsg4326(geom, source_crs=None):
     # Transform geometry to EPSG:4326
     if src_crs != dest_crs:
         print("Transforming geometry from", src_crs.authid(), "to", dest_crs.authid())
-        geom = geom.transform(transform)
+        geom.transform(transform)
 
     # Convert to shapely geometry via GeoJSON dict
     import json
@@ -766,5 +787,8 @@ def apply_capped_symbology(raster_layer, cap_value=1000):
     raster_layer.triggerRepaint()
 
 
-def layer_has_speed_field(layer: QgsVectorLayer) -> bool:
-    return "speed" in [f.name().lower() for f in layer.fields()]
+def layer_correct_fields(layer: QgsVectorLayer) -> bool:
+    fields = [f.name().lower() for f in layer.fields()]
+    if "highway" in fields:
+        return True
+    return False
