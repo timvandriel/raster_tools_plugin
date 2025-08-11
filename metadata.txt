@@ -6,11 +6,11 @@
 name=Raster Tools
 qgisMinimumVersion=3.40
 description=This plugin provides a raster calculator and delivered cost calculator.
-version=0.1
+version=1.0.0
 author=Tim Van Driel
 email=timothy.vandriel@gmail.com
 
-about=This plugin provides two functionalities: a raster calculator and delivered cost calculator. The raster calculator uses the python module Dask in the backend which provides parallel processing, this results in faster computation times on larger rasters. The delivered cost calculator allows users to input values associated with lumber costs, choose and area of interest, and facility point(s) for the lumber to be delivered too. It outputs multiple rasters associated with the delivered cost.
+about=This plugin provides two functionalities: a raster calculator and delivered cost calculator. The raster calculator uses the python module Dask in the backend which provides parallel processing, this results in faster computation times on larger rasters. The delivered cost calculator allows users to input values associated with lumber costs, choose an area of interest and facility point(s) for the lumber to be delivered too. It outputs multiple rasters associated with the delivered cost.
 
 tracker=https://github.com/timvandriel/raster_tools_plugin/issues
 repository=https://github.com/timvandriel/raster_tools_plugin.git

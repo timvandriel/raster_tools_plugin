@@ -26,11 +26,12 @@
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
-    """Load RasterTools class from file RasterTools.
+    """Load r_tools class from file r_tools.
 
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
     #
-    from .rasterTools import RasterTools
-    return RasterTools(iface)
+    from .r_tools import r_tools
+
+    return r_tools(iface)

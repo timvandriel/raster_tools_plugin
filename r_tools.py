@@ -37,7 +37,7 @@ from .lazy_calculator.lazy_raster_calculator_dockwidget import (
 import os.path
 
 
-class RasterTools:
+class r_tools:
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -155,7 +155,6 @@ class RasterTools:
     def open_raster_calculator_dockwidget(self):
         if self.raster_calculator_dockwidget is None:
             self.raster_calculator_dockwidget = LazyRasterCalculatorDockWidget()
-            # Optional: connect a closing signal here if needed
 
         self.iface.addDockWidget(
             Qt.RightDockWidgetArea, self.raster_calculator_dockwidget

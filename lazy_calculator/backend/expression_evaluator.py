@@ -1,11 +1,9 @@
 import re
 import traceback
 from qgis.core import QgsMessageLog, Qgis
-from PyQt5.QtWidgets import QMessageBox
 from .exceptions import InvalidExpressionError
 from .raster_manager import RasterManager
 from .safe_evaluator import SafeEvaluator
-import raster_tools
 import ast
 import numpy as np
 

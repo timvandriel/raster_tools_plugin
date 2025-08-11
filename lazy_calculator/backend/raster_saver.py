@@ -1,6 +1,5 @@
 import os
 from qgis.core import QgsProject, QgsRasterLayer, QgsMessageLog, Qgis
-from .exceptions import RasterCalcError, RasterSaveError
 import traceback
 import tempfile
 import gc
@@ -27,12 +26,13 @@ class RasterSaver:
         """
         try:
             # DEBUG: Check file before save
-            print(f"🔍 DEBUG: File exists before save: {os.path.exists(output_path)}")
-
+            QgsMessageLog.logMessage(
+                f"🔍 DEBUG: File exists before save: {os.path.exists(output_path)}",
+                "Lazy Raster Calculator",
+                Qgis.Info,
+            )
             # The actual save call
-            print(f"🔍 DEBUG: Calling raster.save() now...")
             raster.save(output_path, driver=driver, tiled=True)
-            print(f"🔍 DEBUG: raster.save() completed without exception")
 
             # DEBUG: Check file after save
             file_exists_after = os.path.exists(output_path)
@@ -46,12 +46,14 @@ class RasterSaver:
                     band = ds.GetRasterBand(1)
                     # Force GDAL to read and calculate stats
                     stats = band.ComputeStatistics(False)
-                    print(
-                        f"🔍 DEBUG: GDAL computed stats - min: {stats[0]}, max: {stats[1]}"
-                    )
                     ds = None  # Close the dataset
             except Exception as e:
-                print(f"Could not verify file with GDAL: {e}")
+                QgsMessageLog.logMessage(
+                    f"GDAL error while reading saved raster: {str(e)}",
+                    "Lazy Raster Calculator",
+                    Qgis.Critical,
+                )
+                return None
             # Only proceed with QGIS layer addition if file actually exists
             if file_exists_after and file_size > 0:
                 layer = QgsRasterLayer(
@@ -74,9 +76,7 @@ class RasterSaver:
                 return None  # Return None if file was not created
 
         except Exception as e:
-            print(f"❌ DEBUG: Exception occurred: {type(e).__name__}: {str(e)}")
             tb = traceback.format_exc()
-            print(f"❌ DEBUG: Full traceback:\n{tb}")
             QgsMessageLog.logMessage(
                 f"Error saving raster: {str(e)}\nTraceback:\n{tb}",
                 "Lazy Raster Calculator",
@@ -93,6 +93,5 @@ class RasterSaver:
             tuple: A tuple containing the QgsRasterLayer and the output path.
         """
         output_path = os.path.join(tempfile.gettempdir(), f"{name}.tif")
-        print(f"🔍 DEBUG: Generated temporary output path: {output_path}")
         layer = self.save(raster, output_path)
         return layer, output_path

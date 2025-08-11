@@ -1,4 +1,8 @@
-import raster_tools
+try:
+    import raster_tools
+except ImportError:
+    raise RasterToolsUnavailableError("raster_tools module is not installed.")
+
 import xarray as xr
 import numpy as np
 from .layer_manager import LayerManager
@@ -234,7 +238,7 @@ class RasterManager:
         self, ref_coords, other_coords, axis="y", name="unnamed", ref_name="reference"
     ):
         """
-        Helper method that ompares coordinates of two rasters along a specified axis and prints differences.
+        Helper method that compares coordinates of two rasters along a specified axis and prints differences.
         Args:
             ref_coords (np.ndarray): Reference coordinates to compare against.
             other_coords (np.ndarray): Coordinates from the other raster to compare.

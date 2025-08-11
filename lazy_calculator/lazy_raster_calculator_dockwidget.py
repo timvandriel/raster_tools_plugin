@@ -24,7 +24,7 @@
 
 import os
 
-from qgis.PyQt import QtGui, QtWidgets, uic
+from qgis.PyQt import QtWidgets, uic
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import QAction
 from qgis.core import (
@@ -34,12 +34,20 @@ from qgis.core import (
     QgsRasterLayer,
     QgsMapLayer,
 )
-from qgis.gui import QgsMessageBar, QgsProjectionSelectionDialog
+from qgis.gui import QgsProjectionSelectionDialog
 from qgis.utils import iface
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QInputDialog
-from .backend import *
+
+try:
+    from .backend import *
+except ImportError:
+    QMessageBox.critical(
+        None,
+        "Import Error",
+        "Failed to import backend modules. Please ensure all dependencies are installed.",
+    )
+    raise ImportError("Backend modules could not be imported.")
 import traceback
-import numpy as np
 
 
 FORM_CLASS, _ = uic.loadUiType(
@@ -274,7 +282,6 @@ class LazyRasterCalculatorDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
         except Exception as e:
             tb = traceback.format_exc()
-            print(f"❌ Export Error: {str(e)}\n{tb}")
             QMessageBox.critical(
                 self,
                 "Export Error",
