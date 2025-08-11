@@ -10,10 +10,11 @@ import pandas
 import numpy as np
 
 import py3dep
-import tempfile
+
+# import tempfile
 
 # import elevation
-import rioxarray
+
 
 from qgis.core import QgsProcessingUtils
 
@@ -77,6 +78,16 @@ def get_osm_data(
 def get_3dep_data(sgeo, res=30, out_crs=None):
     """
     Downloads 3dep data and returns a raster object.
+    Args:
+        sgeo (Polygon): Shapely Polygon in EPSG:4326.
+        res (int): Resolution in meters.
+        out_crs (str): Optional target CRS.
+    Returns:
+        Raster: the downloaded DEM as a raster-tools Raster object.
+    Raises:
+        TypeError: If sgeo is not a Polygon.
+        ValueError: If sgeo is invalid or too small.
+        RuntimeError: If DEM download or reprojection fails.
     """
     from shapely.validation import explain_validity
     from shapely.geometry import Polygon
@@ -89,11 +100,12 @@ def get_3dep_data(sgeo, res=30, out_crs=None):
     try:
         # Convert to target CRS (EPSG:3857, meters)
         sgeo_3857 = gpd.GeoSeries([sgeo], crs=4326).to_crs(3857)[0]
-        print(f"Reprojected area: {sgeo_3857.area} m²")
 
         # Validate after reprojection
         if not sgeo_3857.is_valid:
-            print("Geometry invalid after reprojection:", explain_validity(sgeo_3857))
+            raise ValueError(
+                "Geometry invalid after reprojection:", explain_validity(sgeo_3857)
+            )
         if sgeo_3857.is_empty:
             raise ValueError("Geometry became empty after reprojection")
 
@@ -153,12 +165,6 @@ def get_3dep_data(sgeo, res=30, out_crs=None):
 #         return Raster(da.chunk())
 
 
-def _remove_file(path):
-    if os.path.exists(path):
-        os.remove(path)
-    return
-
-
 def _run(
     study_area_coords,
     saw_coords,
@@ -180,21 +186,18 @@ def _run(
     cb_o=False,
     pbar=None,
     log=None,
-    runcnt=1,
 ):
     """
     Runs delivered cost processing and saves output rasters.
-
-    Parameters:
-        study_area_coords: geometry coordinates of study area polygon(s)
-        saw_coords: geometry coordinates of sawmill point(s)
+    Args:
+        study_area_coords: coordinates of the study area polygon(s)
+        saw_coords: coordinates of the sawmill point(s)
         lyr_roads_path: optional path to roads vector data
         lyr_barriers_path: optional path to barriers vector data
         sk_r, cb_r, sk_d, cb_d, fb_d, hf_d, pr_d, lt_d, ht_d, pf_d, sk_p, cb_p, lt_p: various rates and constants
         cb_o: bool, whether to save optional outputs
         pbar: optional progress bar object to update
-        log: optional logger (currently unused)
-        runcnt: integer run count to number output files uniquely
+        log: optional logger function
 
     Returns:
         dict mapping raster description keys to saved file paths
@@ -257,15 +260,9 @@ def _run(
     saw = saw.to_crs(5070)
     s_area = s_area.to_crs(5070)
 
-    maybe_log(log, "Getting elevation Data...")
+    maybe_log(log, "Getting elevation data...")
     if pbar is not None:
         pbar.setValue(pbar.value() + 1)
-    from shapely.validation import explain_validity
-
-    print("DEBUG: Polygon validity:", ply.is_valid)
-    print("DEBUG: Polygon issue:", explain_validity(ply))
-    print("DEBUG: Polygon area:", ply.area)
-    print("DEBUG: Polygon WKT:", ply.wkt)
 
     elv = get_3dep_data(ply, 30, out_crs=s_area.crs)
 
@@ -363,13 +360,13 @@ def _run(
     sc2 = cb_saw_cost * o2
     saw_cost = sc1 + sc2
     saw_cost = saw_cost.where(saw_cost >= 0, np.nan)
-    d_cost = os.path.join(temp_dir, f"d_cost{runcnt}.tif")
+    d_cost = os.path.join(temp_dir, f"d_cost.tif")
     saw_cost.save(d_cost)
-    outdic[f"Delivered Cost {runcnt}"] = d_cost
+    outdic[f"Delivered Cost"] = d_cost
     add_tr_fr_cost = ht_cost + pf_cost
-    a_cost = os.path.join(temp_dir, f"a_cost{runcnt}.tif")
+    a_cost = os.path.join(temp_dir, f"a_cost.tif")
     add_tr_fr_cost.save(a_cost)
-    outdic[f"Additional Treatment Cost {runcnt}"] = a_cost
+    outdic[f"Additional Treatment Cost"] = a_cost
 
     if cb_o:
         maybe_log(
@@ -379,39 +376,32 @@ def _run(
         if pbar is not None:
             pbar.setValue(pbar.value() + 1)
 
-        skidder_cost = os.path.join(temp_dir, f"skidder_cost{runcnt}.tif")
+        skidder_cost = os.path.join(temp_dir, f"skidder_cost.tif")
         sk_saw_cost.save(skidder_cost)
-        outdic[f"Skidder Cost {runcnt}"] = skidder_cost
+        outdic[f"Skidder Cost"] = skidder_cost
 
-        cable_cost = os.path.join(temp_dir, f"cable_cost{runcnt}.tif")
+        cable_cost = os.path.join(temp_dir, f"cable_cost.tif")
         cb_saw_cost.save(cable_cost)
-        outdic[f"Cable Cost {runcnt}"] = cable_cost
+        outdic[f"Cable Cost"] = cable_cost
 
-        hand_treatment_costs = os.path.join(
-            temp_dir, f"hand_treatment_costs{runcnt}.tif"
-        )
+        hand_treatment_costs = os.path.join(temp_dir, f"hand_treatment_costs.tif")
         ht_cost.save(hand_treatment_costs)
-        outdic[f"Hand Treatment Cost {runcnt}"] = hand_treatment_costs
+        outdic[f"Hand Treatment Cost"] = hand_treatment_costs
 
-        prescribed_fire_costs = os.path.join(
-            temp_dir, f"prescribed_fire_costs{runcnt}.tif"
-        )
+        prescribed_fire_costs = os.path.join(temp_dir, f"prescribed_fire_costs.tif")
         pf_cost.save(prescribed_fire_costs)
-        outdic[f"Prescribed Fire Cost {runcnt}"] = prescribed_fire_costs
+        outdic[f"Prescribed Fire Cost"] = prescribed_fire_costs
 
-        potential_harv_system = os.path.join(
-            temp_dir, f"potential_harv_system{runcnt}.tif"
-        )
+        potential_harv_system = os.path.join(temp_dir, f"potential_harv_system.tif")
         opr.save(potential_harv_system)
-        outdic[f"Potential Harvesting System {runcnt}"] = potential_harv_system
+        outdic[f"Potential Harvesting System"] = potential_harv_system
 
     if pbar is not None:
         pbar.setValue(pbar.maximum())
 
-    runcnt += 1
     maybe_log(log, "Finished all processing.")
 
-    return outdic, runcnt
+    return outdic
 
 
 def run(
@@ -436,10 +426,25 @@ def run(
     pbar=None,
     log=None,
 ):
-    runcnt = 1
+    """
+    Main function to run the delivered cost analysis.
+
+    Args:
+        study_area_coords: coordinates of the study area polygon(s)
+        saw_coords: coordinates of the sawmill point(s)
+        lyr_roads_path: optional path to roads vector data
+        lyr_barriers_path: optional path to barriers vector data
+        sk_r, cb_r, sk_d, cb_d, fb_d, hf_d, pr_d, lt_d, ht_d, pf_d, sk_p, cb_p, lt_p: various rates and constants
+        cb_o: bool, whether to save optional outputs
+        pbar: optional progress bar object to update
+        log: optional logger function
+
+    Returns:
+        dict mapping raster description keys to saved file paths
+    """
     start = time.time()
     with ProgressBar():
-        outdic, runcnt = _run(
+        outdic = _run(
             study_area_coords=study_area_coords,
             saw_coords=saw_coords,
             lyr_roads_path=lyr_roads_path,
@@ -460,7 +465,6 @@ def run(
             cb_o=cb_o,
             pbar=pbar,
             log=log,
-            runcnt=runcnt,
         )
     end = time.time()
     maybe_log(log, f"Total processing time: {end - start:.2f} seconds")
@@ -470,6 +474,11 @@ def run(
 def maybe_log(log, msg):
     """
     Helper function to log messages if a logger is provided.
+    Args:
+        log: optional logger function
+        msg: message to log
+    Returns:
+        None
     """
     if log:
         log(msg)

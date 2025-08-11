@@ -30,7 +30,6 @@ from qgis.core import (
     QgsProject,
     QgsRasterLayer,
     Qgis,
-    QgsMessageLog,
     QgsRectangle,
     QgsVectorLayer,
     QgsFeature,
@@ -45,10 +44,10 @@ from qgis.core import (
     QgsMarkerSymbol,
     QgsWkbTypes,
 )
-from qgis.gui import QgsMapToolPan, QgsVertexMarker
+from qgis.gui import QgsMapToolPan
 from qgis.utils import iface
-from PyQt5.QtWidgets import QFileDialog, QMessageBox, QInputDialog, QApplication
-from PyQt5.QtCore import QTimer, Qt, QThreadPool
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import QTimer, QThreadPool
 from .draw_polygon_tool import DrawPolygonTool
 from .pick_point_tool import PickPointTool
 from PyQt5.QtGui import QColor
@@ -73,10 +72,13 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.threadpool = QThreadPool.globalInstance()
+        # Make log textbox read-only
         self.plainTextEdit.setReadOnly(True)
         # Manage the OSM layer
         self.osm_layer_id = None
+        # Check if layers are removed
         QgsProject.instance().layerWillBeRemoved.connect(self.on_layer_removed)
+        # Trigger action pan tool
         iface.actionPan().trigger()
 
         # Background layers
@@ -106,7 +108,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 "layer_id": None,
             },
         }
-
+        # Connect checkboxes to their respective layer loading functions
         for checkbox in self.layer_configs.keys():
             checkbox.toggled.connect(self.on_layer_checkbox_toggled)
 
@@ -225,19 +227,22 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.pointTool.pointPicked.connect(self.handle_point_picked)
         self.pickPointButton.clicked.connect(self.activate_point_picker)
         self.facility_coords = []  # Store picked point coordinates
-        self.facility_layer = None
-        self.facility_layer_id = None
+        self.facility_layer = None  # Store facility layer object
+        self.facility_layer_id = None  # Store facility layer ID
 
         # Connect run button
         self.runButton.clicked.connect(self.run_delivered_cost)
 
     def update_spinbox_from_slider(self, slider, spinbox):
+        """Update spinbox value based on slider value."""
         spinbox.setValue(slider.value() / 10.0)
 
     def update_slider_from_spinbox(self, spinbox, slider):
+        """Update slider value based on spinbox value."""
         slider.setValue(int(spinbox.value() * 10))
 
     def add_osm_basemap(self):
+        """Add OpenStreetMap layer if not already added."""
         if getattr(self, "osm_layer_id", None) is None:
             layer_name = "OSM Standard"
             url = "type=xyz&zmin=0&zmax=19&url=http://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -252,10 +257,14 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 QMessageBox.critical(
                     None,
                     "Layer Load Error",
-                    f"Failed to load layer: {layer_name}. Please check the URL.",
+                    f"Failed to load layer: {layer_name}",
                 )
 
     def on_layer_removed(self, layer_id):
+        """Handle layer removal event.
+        Args:
+            layer_id (str): The ID of the layer being removed.
+        """
         if getattr(self, "osm_layer_id", None) == layer_id:
             self.osm_layer_id = None
         if self.facility_layer_id == layer_id:
@@ -267,6 +276,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             self.aoi_geometry = None
 
     def populate_layer_comboboxes(self):
+        """Populate AOI and Facility comboboxes with available layers."""
         # Save current selections
         aoi_id = self.aoiComboBox.currentData()
         point_id = self.pointComboBox.currentData()
@@ -296,12 +306,13 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 layer_name = layer.name()
                 geom_type = layer.geometryType()
 
-                # Add to combo boxes
+                # Add vector layers to roads and barriers combo boxes
                 self.roadsComboBox.addItem(layer_name, layer_id)
                 roads_index_map[layer_id] = self.roadsComboBox.count() - 1
                 self.barriersComboBox.addItem(layer_name, layer_id)
                 barriers_index_map[layer_id] = self.barriersComboBox.count() - 1
 
+                # Add AOI and Facility layers based on geometry type
                 if geom_type == QgsWkbTypes.PolygonGeometry:
                     self.aoiComboBox.addItem(layer_name, layer_id)
                     aoi_index_map[layer_id] = self.aoiComboBox.count() - 1
@@ -316,35 +327,60 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.barriersComboBox.setCurrentIndex(barriers_index_map.get(barriers_id, 0))
 
     def setup_layer_listeners(self):
+        """Connect signals to update layer comboboxes when layers are added or removed."""
         QgsProject.instance().layersAdded.connect(self.populate_layer_comboboxes)
         QgsProject.instance().layersRemoved.connect(self.populate_layer_comboboxes)
         QgsProject.instance().layerWasAdded.connect(self.populate_layer_comboboxes)
 
     def get_selected_aoi_layer(self):
+        """Get the currently selected AOI layer from the combobox.
+        Returns:
+            QgsVectorLayer: The selected AOI layer, or None if no valid layer is selected.
+        """
         layer_id = self.aoiComboBox.currentData()
         if layer_id is None:
             return None
         return QgsProject.instance().mapLayer(layer_id)
 
     def get_selected_aoi_geometry(self):
+        """Sets self.aoi_geometry to the geometry of the selected AOI layer.
+        If no AOI layer is selected or the layer is invalid, returns None.
+        Returns:
+            QgsCoordinateReferenceSystem: The CRS of the AOI layer, or None if no valid layer is selected.
+        """
+        # Get the selected AOI layer
         aoi_layer = self.get_selected_aoi_layer()
-        if aoi_layer is None or not aoi_layer.isValid():
+        if aoi_layer is None or not aoi_layer.isValid():  # Check if layer is valid
             return None
 
         # Get the first feature's geometry
         feature = next(aoi_layer.getFeatures())
         self.aoi_geometry = feature.geometry()
-        return aoi_layer.crs()
+        return aoi_layer.crs()  # Return the CRS of the AOI layer
 
     def get_selected_facility_layer(self):
+        """Get the currently selected Facility layer from the combobox.
+        Returns:
+            QgsVectorLayer: The selected Facility layer, or None if no valid layer is selected.
+        """
+        # Get the selected layer ID from the combobox
         layer_id = self.pointComboBox.currentData()
-        if layer_id is None:
+        if layer_id is None:  # If no layer is selected, return None
             return None
         return QgsProject.instance().mapLayer(layer_id)
 
     def get_selected_facility_coords(self):
+        """Sets self.facility_coords to the coordinates of the selected Facility layer.
+        If no Facility layer is selected or the layer is invalid, returns None.
+        Returns:
+            QgsCoordinateReferenceSystem: The CRS of the Facility layer, or None if no valid layer is selected.
+        """
+        # Get the selected Facility layer
+        self.facility_coords = []  # Reset coordinates list
         facility_layer = self.get_selected_facility_layer()
-        if facility_layer is None or not facility_layer.isValid():
+        if (
+            facility_layer is None or not facility_layer.isValid()
+        ):  # Check if layer is valid
             return None
 
         # Get all features' geometries
@@ -354,6 +390,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         return facility_layer.crs()
 
     def zoom_to_us_extent_3857(self):
+        """Zoom the map canvas to an approximate extent of the continental U.S. in EPSG:3857."""
         # Approximate extent for continental U.S. in EPSG:3857 (Web Mercator)
         extent_3857 = QgsRectangle(-14000000, 2800000, -7000000, 6300000)
 
@@ -363,8 +400,13 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         canvas.refresh()
 
     def on_layer_checkbox_toggled(self, checked):
-        checkbox = self.sender()  # Which checkbox sent this signal?
-        config = self.layer_configs.get(checkbox)
+        """Handle toggling of background layer checkboxes.
+        Args:
+            checked (bool): True if the checkbox is checked, False if unchecked.
+        """
+        # Get the checkbox that sent this signal
+        checkbox = self.sender()
+        config = self.layer_configs.get(checkbox)  # Get the config for this checkbox
         if config is None:
             return
 
@@ -394,6 +436,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 config["layer_id"] = None
 
     def activate_draw_tool(self):
+        """Activate the draw polygon tool to create an AOI polygon."""
         # If AOI layer already exists, remove it from project
         if hasattr(self, "aoi_layer_id") and self.aoi_layer_id:
             layer = QgsProject.instance().mapLayer(self.aoi_layer_id)
@@ -410,13 +453,16 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             "Instructions for drawing a polygon",
             "Click to add points, right-click to finish the polygon. AOI will be removed if button is clicked again.",
             level=Qgis.Info,
-            duration=25,
+            duration=15,
         )
 
     def handle_polygon_completed(self, geom):
+        """Handle the completion of a polygon drawing.
+        Args:
+            geom (QgsGeometry): The drawn polygon geometry.
+        """
         project_crs = QgsProject.instance().crs()
         geom = QgsGeometry(geom)
-        # self.aoi_geometry = geom
 
         # Create the layer
         aoi_layer = QgsVectorLayer(
@@ -424,8 +470,11 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         )
         QgsProject.instance().addMapLayer(aoi_layer)
         self.aoi_layer_id = aoi_layer.id()  # Store only the ID
-        self.aoiComboBox.setCurrentIndex(self.aoiComboBox.findData(self.aoi_layer_id))
+        self.aoiComboBox.setCurrentIndex(
+            self.aoiComboBox.findData(self.aoi_layer_id)
+        )  # update combobox selection
 
+        # Add the geometry to the layer
         pr = aoi_layer.dataProvider()
         feat = QgsFeature()
         feat.setGeometry(geom)
@@ -437,6 +486,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         iface.actionPan().trigger()
 
     def activate_point_picker(self):
+        """Activate the point picking tool to select facility locations. Adds a new memory layer if not already created."""
         if self.facility_layer is None:
             # Create a memory layer for facility points
             crs = QgsProject.instance().crs()
@@ -466,11 +516,14 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             "Instructions for picking multiple points",
             "Click to add a facility location. Repeat as needed. Delete 'Facilities' layer to start over.",
             level=Qgis.Info,
-            duration=20,
+            duration=15,
         )
 
     def handle_point_picked(self, point):
-        # self.facility_coords.append((point.x(), point.y()))
+        """Handle the event when a point is picked.
+        Args:
+            point (QgsPointXY): The picked point coordinates.
+        """
         geom = QgsGeometry.fromPointXY(point)
 
         # Add the new point to the same memory layer
@@ -483,10 +536,19 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         iface.mapCanvas().refresh()
 
     def log_to_textbox(self, message):
+        """Log messages to the plain text edit box.
+        Args:
+            message (str): The message to log.
+        """
         self.plainTextEdit.appendPlainText(str(message))
 
     def handle_results(self, result_dict):
-
+        """Handle the results from the delivered cost analysis worker.
+        Args:
+            result_dict (dict): Dictionary containing layer names and their file paths.
+        Raises:
+            RuntimeError: If any raster layer fails to load or is invalid.
+        """
         self.log_to_textbox("Delivered Cost Analysis completed successfully.")
         self.runButton.setEnabled(True)
         try:
@@ -526,24 +588,29 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             self.log_to_textbox(f"Error adding layers to project: {str(e)}")
 
     def show_error(self, error_message):
+        """Show an error message in the log textbox and a message box.
+        Args:
+            error_message (str): The error message to display.
+        """
         self.log_to_textbox(f"Error: {error_message}")
         QMessageBox.critical(self, "Error", error_message)
         self.runButton.setEnabled(True)
 
     def run_delivered_cost(self):
-        self.plainTextEdit.clear()
-        aoi_crs = self.get_selected_aoi_geometry()
-        print(self.aoi_geometry)
-        if aoi_crs is None:
+        """Run the delivered cost analysis with the selected AOI and Facility layers."""
+        self.plainTextEdit.clear()  # Clear previous log messages
+        aoi_crs = self.get_selected_aoi_geometry()  # Get AOI geometry and CRS
+        if aoi_crs is None:  # If AOI layer crs is None, use project CRS
             study_area_coords = qgs_to_coords_list_epsg4326(self.aoi_geometry)
         else:
             study_area_coords = qgs_to_coords_list_epsg4326(
                 self.aoi_geometry, source_crs=aoi_crs
             )
 
-        facility_crs = self.get_selected_facility_coords()
-        print(self.facility_coords)
-        if facility_crs is None:
+        facility_crs = (
+            self.get_selected_facility_coords()
+        )  # Get Facility coordinates and CRS
+        if facility_crs is None:  # If Facility layer crs is None, use project CRS
             saw_coords = [
                 qgs_to_coords_list_epsg4326(QgsPointXY(pt[0], pt[1]))
                 for pt in self.facility_coords
@@ -555,23 +622,23 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 )
                 for pt in self.facility_coords
             ]
-        print("Facility Coords:", self.facility_coords)
-        print("AOI Geometry:", self.aoi_geometry)
-        if not self.facility_coords:
+        if not self.facility_coords:  # If no facility points are selected
             QMessageBox.warning(
                 self,
                 "No Facility Point",
                 "Please pick a facility point before running the analysis.",
             )
             return
-        elif not hasattr(self, "aoi_geometry") or self.aoi_geometry is None:
+        elif (
+            not hasattr(self, "aoi_geometry") or self.aoi_geometry is None
+        ):  # If AOI layer is not defined
             QMessageBox.warning(
                 self,
                 "No AOI Polygon",
                 "Please draw an area of interest polygon before running the analysis.",
             )
             return
-        if self.roadsComboBox.currentData() is not None:
+        if self.roadsComboBox.currentData() is not None:  # If roads layer is selected
             layer = QgsProject.instance().mapLayer(self.roadsComboBox.currentData())
             if layer_correct_fields(layer):
                 self.lyr_roads_path = layer.source()
@@ -579,17 +646,20 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 QMessageBox.warning(
                     self,
                     "Invalid Roads Layer",
-                    "The selected roads layer does not have a 'highway' field. The 'highway' field must be filled with one of the following: motorway, trunk, primary, secondary, tertiary, unclassified, residential. The 'maxspeed' field is optional and may be left blank. Please select a valid roads layer.",
+                    "The selected roads layer does not have a 'highway' field. The 'highway' field must be filled with one of the following: motorway, trunk, primary, secondary, tertiary, unclassified, residential. Please select a valid roads layer.",
                 )
                 return
         else:
             self.lyr_roads_path = None
-        if self.barriersComboBox.currentData() is not None:
+        if (
+            self.barriersComboBox.currentData() is not None
+        ):  # If barriers layer is selected
             layer = QgsProject.instance().mapLayer(self.barriersComboBox.currentData())
             self.lyr_barriers_path = layer.source()
         else:
             self.lyr_barriers_path = None
 
+        # Get values from spinboxes
         tr_s = self.rtSpdSpinBox.value()
         cb_s = self.skylineSpdSpinBox.value()
 
@@ -627,7 +697,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             "lt_p": lt_p,
             "cb_o": cb_o,
         }
-        self.runButton.setEnabled(False)
+        self.runButton.setEnabled(False)  # Disable button to prevent multiple clicks
         self.log_to_textbox("Starting Delivered Cost Analysis...")
         try:
             from .workers import DeliveredCostWorker
@@ -644,34 +714,50 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             return
 
     def closeEvent(self, event):
-        self.facility_coords = []
-        self.aoi_geometry = None
-        if hasattr(self, "osm_layer_id") and self.osm_layer_id:
+        """Handle the close event of the dock widget.
+        Args:
+            event (QCloseEvent): The close event.
+        """
+        self.facility_coords = []  # Reset facility coordinates
+        self.aoi_geometry = None  # Reset AOI geometry
+        if (
+            hasattr(self, "osm_layer_id") and self.osm_layer_id
+        ):  # Remove OSM layer if it exists
             layer = QgsProject.instance().mapLayer(self.osm_layer_id)
             if layer:
                 QgsProject.instance().removeMapLayer(layer)
             self.osm_layer_id = None
-        if hasattr(self, "aoi_layer_id") and self.aoi_layer_id:
+        if (
+            hasattr(self, "aoi_layer_id") and self.aoi_layer_id
+        ):  # Remove AOI layer if it exists
             layer = QgsProject.instance().mapLayer(self.aoi_layer_id)
             if layer:
                 QgsProject.instance().removeMapLayer(layer)
             self.aoi_layer_id = None
 
-        if hasattr(self, "facility_layer_id") and self.facility_layer_id:
+        if (
+            hasattr(self, "facility_layer_id") and self.facility_layer_id
+        ):  # Remove Facility layer if it exists
             layer = QgsProject.instance().mapLayer(self.facility_layer_id)
             if layer:
                 QgsProject.instance().removeMapLayer(layer)
             self.facility_layer_id = None
 
-        if hasattr(self, "draw_polygon_tool") and self.draw_polygon_tool:
+        if (
+            hasattr(self, "draw_polygon_tool") and self.draw_polygon_tool
+        ):  # Deactivate draw tool if it exists
             self.draw_polygon_tool.deactivate()
 
-        if hasattr(self, "pointTool") and self.pointTool:
+        if (
+            hasattr(self, "pointTool") and self.pointTool
+        ):  # Deactivate point tool if it exists
             self.pointTool.deactivate()
 
         # Switch back to pan tool explicitly
         pan_tool = QgsMapToolPan(iface.mapCanvas())
         iface.mapCanvas().setMapTool(pan_tool)
+
+        # Remove all background layers
         for config in self.layer_configs.values():
             layer_id = config.get("layer_id")
             if layer_id:
@@ -691,26 +777,23 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         """Override showEvent to add OSM layer when the dock widget is shown."""
         if getattr(self, "osm_layer_id", None) is None:
             self.add_osm_basemap()
-            QTimer.singleShot(100, self.zoom_to_us_extent_3857)
+            QTimer.singleShot(
+                100, self.zoom_to_us_extent_3857
+            )  # Zoom to U.S. extent after adding OSM layer
         super(DeliveredCostDockWidget, self).showEvent(event)
 
 
 def qgs_to_coords_list_epsg4326(geom, source_crs=None):
-    """
-    Convert a QgsGeometry or QgsPointXY from project CRS to EPSG:4326 and
-    return a list of coordinates.
-
-    For a Point geometry, returns [(lon, lat)].
-    For a Polygon geometry, returns a list of (lon, lat) tuples for the exterior ring.
-
-    Parameters:
-        geom: QgsGeometry or QgsPointXY
-
+    """Convert a QgsGeometry or QgsPointXY to a list of coordinates in EPSG:4326.
+    Args:
+        geom (QgsGeometry or QgsPointXY): The geometry to convert.
+        source_crs (QgsCoordinateReferenceSystem, optional): The source CRS of the geometry. If None, uses project CRS.
     Returns:
-        list of (lon, lat) tuples
+        list: A list of tuples representing coordinates in EPSG:4326.
+    Raises:
+        ValueError: If the geometry type is unsupported.
     """
     # Get source CRS (usually project CRS)
-    print("Source CRS:", source_crs)
     if source_crs is None:
         src_crs = QgsProject.instance().crs()
     else:
@@ -726,7 +809,6 @@ def qgs_to_coords_list_epsg4326(geom, source_crs=None):
 
     # Transform geometry to EPSG:4326
     if src_crs != dest_crs:
-        print("Transforming geometry from", src_crs.authid(), "to", dest_crs.authid())
         geom.transform(transform)
 
     # Convert to shapely geometry via GeoJSON dict
@@ -748,6 +830,11 @@ def qgs_to_coords_list_epsg4326(geom, source_crs=None):
 
 
 def apply_capped_symbology(raster_layer, cap_value=1000):
+    """Apply symbology to a raster layer with capped values.
+    Args:
+        raster_layer (QgsRasterLayer): The raster layer to apply symbology to.
+        cap_value (float): The maximum value for the color ramp.
+    """
     stats = raster_layer.dataProvider().bandStatistics(1)
     actual_min = stats.minimumValue
     symbology_min = actual_min
@@ -788,6 +875,12 @@ def apply_capped_symbology(raster_layer, cap_value=1000):
 
 
 def layer_correct_fields(layer: QgsVectorLayer) -> bool:
+    """Check if the given layer has the required 'highway' field.
+    Args:
+        layer (QgsVectorLayer): The layer to check.
+    Returns:
+        bool: True if the layer has a 'highway' field, False otherwise.
+    """
     fields = [f.name().lower() for f in layer.fields()]
     if "highway" in fields:
         return True
