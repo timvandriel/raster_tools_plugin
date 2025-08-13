@@ -69,3 +69,35 @@ When the lazy layer checkbox is **checked** and the 'Okay' button is clicked wit
 ![Context Menu for lazy layers](media/computeLayer.png)
 The 'Compute Lazy Layer' option will force computation of the raster and place it into the QGIS layer panel. 'Compute and Export Lazy Layer...' will force computation and then prompt you for a location to save it too, avoiding loading it into QGIS altogether. After you choose one of these options the lazy layer will be removed from the layer panel and you will no longer be able to use it.
 If you leave the checkbox **unchecked** then the expression will be evaluated immediately, you will be prompted for a name for the layer, and the resulting layer will be added to the QGIS layer panel. This is only a TEMPORARY layer, meaning that you must export the raster to a location on your computer, otherwise it will be lost once QGIS is closed.
+
+### Delivered Cost Analysis
+The Delivered Cost Analysis consists of two tabs: Values and Run.
+
+#### Values tab
+![Delivered Cost Values Tab](media/dcValues.png)
+The values tab allows you to set values associated with lumber costs. These values will be used in the computation for the resulting rasters.
+
+#### Run tab
+ ![Delivered Cost Run Tab](media/dcRun.png)
+##### Background Layers
+The background layers are just a way to help visualize your area of interest and are not used in the computation. You can select the following background layers if you wish:
+- ESRI World Imagery: aerial imagery of the world
+- Burn Probability: the likelihood of a given area burning
+- PCL (Potential Control Location): shows where fire containment will be most successful
+- Landfire EVT: shows existing vegetation type
+
+#### Polygon for AOI (Area of Interest)
+This is the area of interest you wish to get lumber from. You can either draw a polygon or select one that you have added to the QGIS layer panel. If you wish to use your own it must be a vector layer with a polygon feature, or it will not be selectable from the combo box. If you select the 'Draw' button then you can select points on the map with a left-click and finish the polygon with a right-click. Once you right-click this will automatically add a temporary vector layer to the layer panel named 'AOI', display the polygon on the map, and update the combobox to the show the polygon you have just drawn. You can delete the layer from the layer panel or press the 'Draw' button again if you wish to start over.
+
+#### Facility Location(s)
+Facility locations are where you wish to deliver the lumber too. You can either pick the points on the map or select a vector layer with point geometries from the layer panel. If you select the 'Pick' you can then left-click on the map extent where the facility would be located. This will add a cross marker where you clicked on the map and a vector layer to the layer panel named "Facilities". To add more than one facility simply press the 'Pick' button again. You can add as many points as you would like. The combo box will also update to show this layer being used for the computation. To start over you can remove the "Facilities" layer from the layer panel.
+
+#### Choose Roads File (Optional)
+You may wish to use a vector layer with predefined roads in the computation. To do this upload your roads layer into QGIS and select it from the combo box. The vecctor layer must have a 'highway' field filled with one of the following: motorway, trunk, primary, secondary, tertiary, unclassified, residential. You may also include a 'maxspeed' field that can be used in the computation. If no roads file is used then the data will be pulled from Open Street Maps.
+
+#### Choose Barriers File (Options)
+You may also want to use vector layer with predefined barriers. Once again you just need to upload the layer to QGIS. There are no required fields for this vector layer. If you do not choose a layer then the barriers will pulled from Open Street Maps.
+
+#### Create Optional Surfaces
+
+
