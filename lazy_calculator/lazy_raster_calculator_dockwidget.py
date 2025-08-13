@@ -571,6 +571,7 @@ class LazyRasterCalculatorDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.clear_expression()
         self.crsComboBox.setCurrentIndex(0)
         self.lazyCheckBox.setChecked(True)
+        self.dtypeComboBox.setCurrentIndex(0)
         self.populate_raster_layer_list()
         self.populate_crs_combobox()
         self.update_expression_status(False)
