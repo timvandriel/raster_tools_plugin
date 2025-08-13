@@ -20,15 +20,16 @@ This plugin requires the folowing python modules: raster_tools, osmnx, and py3de
 `print(numpy.__version__)`
 3. Open the OSGeo4W Shell and type the following commands:
 `pip install raster_tools osmnx py3dep numpy=={your numpy version in QGIS}`
+Replace {your numpy version in QGIS} with whatever you got in step two. For me it was 1.26.4, so mine looked like: `numpy==1.26.4`
 4. Download the zip file from this repository. Then in QGIS open the plugins menu from the top and select 'Manage and Install Plugins. Select 'Install from zip' and select the zip file from this repo.
 
 ### Linux/Mac
 Linux and Mac require QGIS to be installed through the conda-forge channel for this plugin to work. To acess conda-forge you must first install Miniconda by following the instructions at this link: https://www.anaconda.com/docs/getting-started/miniconda/install
 1. Once you have Miniconda installed, in your terminal/command prompt enter the following commands:
-`conda config --add channels conda-forge`
-`conda config --set channel-priority strict`
-`conda update --all`
-2. If preferred you can create a conda environment for you QGIS to be installed in. To do this enter this into your terminal/command prompt:
+    - `conda config --add channels conda-forge`
+    - `conda config --set channel-priority strict`
+    - `conda update --all`
+2. If preferred you can create a conda environment for you QGIS to be installed. To do this enter this into your terminal/command prompt:
 `conda create --name qgis-env`
 You can replace 'qgis-env' with any name you'd like. Next enter:
 `conda activate qgis-env'
@@ -67,4 +68,4 @@ The following data types are included:
 When the lazy layer checkbox is **checked** and the 'Okay' button is clicked with a valid expression you will be prompted for a name for the lazy raster. After entering a name, a placeholder layer will be added to the QGIS layer panel with '(Lazy)' following the name you inputted as shown here: ![Lazy Layer in Layer Panel](media/lazyLayer.png) You may notice that nothing shows up in the map extent of QGIS or that the new layer has an unavailable layer icon next to it's name, this is because the raster has not been calculated yet. From here you can either force computation or use the lazy layer in another expression. To force computation right-click on the lazy layer and choose one of the options as shown below:
 ![Context Menu for lazy layers](media/computeLayer.png)
 The 'Compute Lazy Layer' option will force computation of the raster and place it into the QGIS layer panel. 'Compute and Export Lazy Layer...' will force computation and then prompt you for a location to save it too, avoiding loading it into QGIS altogether. After you choose one of these options the lazy layer will be removed from the layer panel and you will no longer be able to use it.
-If you leave the checkbox **unchecked** then the expression will be evaluated immediately, you will be prompted for a name for the layer, and the resulting layer will be added to the QGIS layer panel. This is only a **temporary layer**, meaning that you must save the raster to a location on your computer, otherwise it will be lost once QGIS is closed.
+If you leave the checkbox **unchecked** then the expression will be evaluated immediately, you will be prompted for a name for the layer, and the resulting layer will be added to the QGIS layer panel. This is only a TEMPORARY layer, meaning that you must export the raster to a location on your computer, otherwise it will be lost once QGIS is closed.
