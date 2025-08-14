@@ -63,6 +63,8 @@ The installation method depends on your operating system. `osmnx` and `py3dep` a
 
 ### Linux/Mac
 
+*Disclaimer*: The Mac version is experimental and may present bugs in QGIS.
+
 For this plugin to work, QGIS must be installed via the **conda-forge** channel.
 
 1. **Install Miniconda**: 
