@@ -26,7 +26,8 @@ from qgis.core import QgsProject, QgsRasterLayer, QgsMessageLog, Qgis
 import traceback
 import tempfile
 import gc
-from osgeo import gdal
+
+# from osgeo import gdal
 
 
 class RasterSaver:
@@ -63,20 +64,20 @@ class RasterSaver:
 
             # Force file to be completely written and closed
             gc.collect()  # Force garbage collection to free up memory
-            try:
-                ds = gdal.Open(output_path)
-                if ds:
-                    band = ds.GetRasterBand(1)
-                    # Force GDAL to read and calculate stats
-                    stats = band.ComputeStatistics(False)
-                    ds = None  # Close the dataset
-            except Exception as e:
-                QgsMessageLog.logMessage(
-                    f"GDAL error while reading saved raster: {str(e)}",
-                    "Lazy Raster Calculator",
-                    Qgis.Critical,
-                )
-                return None
+            # try:
+            #     ds = gdal.Open(output_path)
+            #     if ds:
+            #         band = ds.GetRasterBand(1)
+            #         # Force GDAL to read and calculate stats
+            #         stats = band.ComputeStatistics(False)
+            #         ds = None  # Close the dataset
+            # except Exception as e:
+            #     QgsMessageLog.logMessage(
+            #         f"GDAL error while reading saved raster: {str(e)}",
+            #         "Lazy Raster Calculator",
+            #         Qgis.Critical,
+            #     )
+            #     return None
             # Only proceed with QGIS layer addition if file actually exists
             if file_exists_after and file_size > 0:
                 layer = QgsRasterLayer(

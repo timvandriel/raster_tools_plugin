@@ -714,12 +714,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             self.facility_layer = None
             self.aoi_layer_id = None
             self.aoi_geometry = None
-            self.aoiComboBox.setCurrentIndex(0)  # Reset AOI combobox
-            self.pointComboBox.setCurrentIndex(0)  # Reset Facility combobox
-            self.roadsComboBox.setCurrentIndex(0)
-            self.barriersComboBox.setCurrentIndex(
-                0
-            )  # Reset Roads and Barriers comboboxes
         except Exception as e:
             self.log_to_textbox(f"Error initializing worker: {str(e)}")
             self.runButton.setEnabled(True)
