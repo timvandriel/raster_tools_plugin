@@ -78,7 +78,7 @@ The Delivered Cost Analysis consists of two tabs: Values and Run.
 The values tab allows you to set values associated with lumber costs. These values will be used in the computation for the resulting rasters.
 
 #### Run tab
- ![Delivered Cost Run Tab](media/dcRun.png)
+<img src="media/dcRun.png" width="500" height="800">
 ##### Background Layers
 The background layers are just a way to help visualize your area of interest and are not used in the computation. You can select the following background layers if you wish:
 - ESRI World Imagery: aerial imagery of the world
@@ -102,7 +102,9 @@ You may also want to use vector layer with predefined barriers. Once again you j
 The create optional surfaces checkbox allows for more rasters to be outputted from the computation. If **unchecked** two cost rasters will be outputted: Delivered Cost and Additional Treatment Cost. If **checked** seven rasters will be outputted: Delivered Cost, Additional Treatment Cost, Skidder Cost, Cable Cost, Hand Treatment Cost, Prescribed Fire Cost, and Potential Harvesting System.
 
 #### Run 
-When you are ready to run the analysis you may hit the run button. You need atleast an area of interest and one facility point for it to work. The progress bar and text box will provide updates for the analysis and notify you if any errors arise. The outputted rasters are automatically added to the QGIS layer panel. Rasters that exceed values of 1000 are automatically capped and the symbology is changed to red, green, and yellow for display purposes. The outputted rasters are TEMPORARY layers and will need to be exported/saved before closing QGIS.
+When you are ready to run the analysis you may hit the run button. You need atleast an area of interest and one facility point for it to work. The progress bar and text box will provide updates for the analysis and notify you if any errors arise. The outputted rasters are automatically added to the QGIS layer panel. Rasters that exceed values of 1000 are automatically capped and the symbology is changed to red, green, and yellow for display purposes. The outputted rasters are TEMPORARY layers and will need to be exported/saved before closing QGIS. Below is a example of what a Delivered Cost ouput might look like.
+
+<img src="media/dcOutput.png" width="200" height="300">
 
 
 
