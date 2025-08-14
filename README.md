@@ -169,7 +169,7 @@ The Delivered Cost Analysis consists of two tabs: **Values** and **Run**.
 
 <img src="media/dcValues.png" width="400" height="600">
 
-Set values for lumber cost calculations. These values are used in raster computation.
+- Set values for lumber cost calculations. These values are used in the raster computation.
 
 ---
 

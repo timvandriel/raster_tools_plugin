@@ -1,2 +1,4 @@
-__pycache__
-test   
+# Ignore Python cache directories
+__pycache__/
+delivered_cost/__pycache__/
+lazy_calculator/__pycache__/

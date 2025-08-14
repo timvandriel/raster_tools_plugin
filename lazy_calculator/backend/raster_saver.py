@@ -26,6 +26,9 @@ from qgis.core import QgsProject, QgsRasterLayer, QgsMessageLog, Qgis
 import traceback
 import tempfile
 import gc
+from qgis.core import QgsProcessingUtils
+
+temp_dir = QgsProcessingUtils.tempFolder()
 
 # from osgeo import gdal
 
@@ -116,6 +119,6 @@ class RasterSaver:
         Returns:
             tuple: A tuple containing the QgsRasterLayer and the output path.
         """
-        output_path = os.path.join(tempfile.gettempdir(), f"{name}.tif")
+        output_path = os.path.join(temp_dir, f"{name}.tif")
         layer = self.save(raster, output_path)
         return layer, output_path

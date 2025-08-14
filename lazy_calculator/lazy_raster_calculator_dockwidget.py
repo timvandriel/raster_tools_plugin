@@ -73,8 +73,6 @@ class LazyRasterCalculatorDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.layer_tree_view = iface.layerTreeView()
         self.layer_tree_view.contextMenuAboutToShow.connect(self.on_context_menu)
 
-        self.temp_files = {}  # Dictionary to store temporary file paths by layer ID
-
         # check if user removed the lazy layer
         QgsProject.instance().layerWillBeRemoved.connect(self.on_layer_removed)
 
@@ -192,8 +190,7 @@ class LazyRasterCalculatorDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             raster = lazy_layer.copy()
 
             # Save computed result to temporary location and get new layer
-            new_layer, temp_path = self.raster_saver.temp_output(raster, layer_name)
-            self.temp_files[new_layer.id()] = temp_path
+            _, _ = self.raster_saver.temp_output(raster, layer_name)
 
             # Remove the old placeholder (not the new one)
             QgsProject.instance().removeMapLayer(layer.id())
@@ -305,15 +302,6 @@ class LazyRasterCalculatorDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         lazy_name = layer.customProperty("lazy_name", None)
         if lazy_name and self.lazy_registry.has(lazy_name):
             self.lazy_registry.remove(lazy_name)
-
-        # 2. Delete associated temporary file if tracked
-        tmp_path = self.temp_files.pop(layer_id, None)
-        if tmp_path and os.path.exists(tmp_path):
-            try:
-                os.remove(tmp_path)
-                print(f"Deleted temporary file: {tmp_path}")
-            except Exception as e:
-                print(f"Failed to delete temp file {tmp_path}: {e}")
 
     def populate_raster_layer_list(self):
         """Populate the list widget with visible raster layers, including band-specific entries for multi-band rasters."""
@@ -536,8 +524,7 @@ class LazyRasterCalculatorDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 return
             try:
                 # Save the raster to a temporary file and add it to the project
-                layer, temp_path = self.raster_saver.temp_output(result, result_name)
-                self.temp_files[layer.id()] = temp_path
+                _, _ = self.raster_saver.temp_output(result, result_name)
                 QMessageBox.information(
                     self,
                     "Success",
