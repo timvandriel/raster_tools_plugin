@@ -43,17 +43,21 @@ You can replace 'qgis-env' with any name you'd like. Next enter:
 ## Usage
 ### Lazy Raster Calculator
 
-![Lazy Raster Calculator UI](media/rCalcUI.png)
+<img src="media/rCalcUI.png" width="400" height="600">
+
 #### Expressions
 In order to use the calculator widget you must first load one or more rasters into QGIS. These rasters will automatically show up under 'Raster Layers' in the dockwidget, from here you can double click the raster to insert it into the expression box and form the expression you wish to evaluate. If an expression is invalid it will notify you of this below the expression box.
-![Invalid Expression](media/invalidEx.png)
+
+<img src="media/invalidEx.png" width="350" height="200">
+
 The calculator provides the following operators: 
 - Arithmetic operators: addition +, subtraction -, multiplication *, division /, exponents **, and parentheses ( ).
 - Logical operators: less than <, greater than >, less than or equal too <=, greater than or equal too >=, not equal too !=, and equal too ==. These will return a raster of boolean values.
 - Bitwise operators: and &, or |, not ~. The input rasters must be of type int for these operators.
 
 #### Result Layer Options
-![Result Layer Options](media/resultLayer.png)
+<img src="media/resultLayer.png" width="375" height="200">
+
 ##### CRS
 As you can see you have a couple of options for the resulting layer from your expression. The first one being the CRS of the resulting layer. You can choose from EPSG:4326 or the project CRS by using the drop down button. You may also select the button to the right of the combo box which will open the QGIS dialogue for CRS selection. Additionally you can type the CRS into the box, but it must be in authid format, for example "EPSG:4326".
 
@@ -61,12 +65,17 @@ As you can see you have a couple of options for the resulting layer from your ex
 You can choose what data type the resulting raster will be outputted as, or you may let raster_tools handle the data type. 
 
 The following data types are included:
-![Data types](media/dtypes.png)
+<img src="media/dtypes.png" width="100" height="450">
 
 ##### Lazy Layer Checkbox
-![Lazy Layer Checkbox](media/lazyLayerBox.png)
-When the lazy layer checkbox is **checked** and the 'Okay' button is clicked with a valid expression you will be prompted for a name for the lazy raster. After entering a name, a placeholder layer will be added to the QGIS layer panel with '(Lazy)' following the name you inputted as shown here: ![Lazy Layer in Layer Panel](media/lazyLayer.png) You may notice that nothing shows up in the map extent of QGIS or that the new layer has an unavailable layer icon next to it's name, this is because the raster has not been calculated yet. From here you can either force computation or use the lazy layer in another expression. To force computation right-click on the lazy layer and choose one of the options as shown below:
-![Context Menu for lazy layers](media/computeLayer.png)
+<img src="media/lazyLayerBox.png" width="200" height="75">
+
+When the lazy layer checkbox is **checked** and the 'Okay' button is clicked with a valid expression you will be prompted for a name for the lazy raster. After entering a name, a placeholder layer will be added to the QGIS layer panel with '(Lazy)' following the name you inputted as shown here: 
+<img src="media/lazyLayer.png" width="350" height="100">
+You may notice that nothing shows up in the map extent of QGIS or that the new layer has an unavailable layer icon next to it's name, this is because the raster has not been calculated yet. From here you can either force computation or use the lazy layer in another expression. To force computation right-click on the lazy layer and choose one of the options as shown below:
+
+<img src="media/computeLayer.png" width="350" height="100">
+
 The 'Compute Lazy Layer' option will force computation of the raster and place it into the QGIS layer panel. 'Compute and Export Lazy Layer...' will force computation and then prompt you for a location to save it too, avoiding loading it into QGIS altogether. After you choose one of these options the lazy layer will be removed from the layer panel and you will no longer be able to use it.
 If you leave the checkbox **unchecked** then the expression will be evaluated immediately, you will be prompted for a name for the layer, and the resulting layer will be added to the QGIS layer panel. This is only a TEMPORARY layer, meaning that you must export the raster to a location on your computer, otherwise it will be lost once QGIS is closed.
 
@@ -74,11 +83,12 @@ If you leave the checkbox **unchecked** then the expression will be evaluated im
 The Delivered Cost Analysis consists of two tabs: Values and Run.
 
 #### Values tab
-![Delivered Cost Values Tab](media/dcValues.png)
+<img src="media/dcValues.png" width="400" height="600">
 The values tab allows you to set values associated with lumber costs. These values will be used in the computation for the resulting rasters.
 
 #### Run tab
-<img src="media/dcRun.png" width="500" height="800">
+<img src="media/dcRun.png" width="400" height="600">
+
 ##### Background Layers
 The background layers are just a way to help visualize your area of interest and are not used in the computation. You can select the following background layers if you wish:
 - ESRI World Imagery: aerial imagery of the world
