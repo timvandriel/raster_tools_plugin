@@ -68,42 +68,50 @@ class ExpressionEvaluator:
         """
         Validates the expression syntax using Python's AST parser.
         Replaces quoted layer names with valid identifiers before parsing.
-        Also checks for invalid syntax such as adjacent quoted layer names.
-
-        Args:
-            expression (str): The raster math expression to validate.
-
-        Returns:
-            bool: True if the expression is valid, False otherwise.
-        Raises:
-            SyntaxError: If the expression contains invalid syntax.
+        Ensures only valid operators and known identifiers are used.
         """
         if not expression:
             return False
 
-        # Check for adjacent quoted layer names with no operator between them
-        adjacent_layer_pattern = r'"[^"]+"\s*"[^"]+"'
-        if re.search(adjacent_layer_pattern, expression):
-            return False  # Found two quoted names with no operator in between
+        # Check for adjacent quoted layer names without operator
+        if re.search(r'"[^"]+"\s*"[^"]+"', expression):
+            return False
 
+        # Disallow any double operator except exponent (**)
+        # This checks the raw expression before replacements
+        if re.search(r"([+\-*/^%]{2,})", expression):
+            matches = re.findall(r"([+\-*/^%]{2,})", expression)
+            for m in matches:
+                if m != "**":
+                    return False
+
+        # Replace quoted layer names with dummy identifiers
+        dummy_names = {}
+
+        def replacer(match):
+            name = match.group(1)
+            if name not in dummy_names:
+                dummy_names[name] = f"r_{len(dummy_names)}"
+            return dummy_names[name]
+
+        expr_cleaned = re.sub(r'"([^"]+)"', replacer, expression)
+
+        # Try parsing into AST
         try:
-            # Replace quoted layer names with dummy identifiers like r_0, r_1, etc.
-            dummy_names = {}
-
-            def replacer(match):
-                name = match.group(1)
-                if name not in dummy_names:
-                    dummy_names[name] = f"r_{len(dummy_names)}"
-                return dummy_names[name]
-
-            expr_cleaned = re.sub(r'"([^"]+)"', replacer, expression)
-
-            # Try parsing the cleaned expression
-            ast.parse(expr_cleaned, mode="eval")
-            return True
-
+            tree = ast.parse(expr_cleaned, mode="eval")
         except SyntaxError:
             return False
+
+        # Allowed variable names = only our dummy raster names
+        allowed_names = set(dummy_names.values())
+
+        # Walk the AST and validate names
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                if node.id not in allowed_names:
+                    return False
+
+        return True
 
     def evaluate(
         self,

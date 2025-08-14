@@ -24,7 +24,6 @@
 import os
 from qgis.core import QgsProject, QgsRasterLayer, QgsMessageLog, Qgis
 import traceback
-import tempfile
 import gc
 from qgis.core import QgsProcessingUtils
 
