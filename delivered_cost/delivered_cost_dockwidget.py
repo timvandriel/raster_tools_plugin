@@ -708,10 +708,21 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             worker.signals.finished.connect(self.handle_results)
             worker.signals.error.connect(self.show_error)
             self.threadpool.start(worker)
+            # Reset state after starting the worker
+            self.facility_layer_id = None
+            self.facility_coords = []
+            self.facility_layer = None
+            self.aoi_layer_id = None
+            self.aoi_geometry = None
+            self.aoiComboBox.setCurrentIndex(0)  # Reset AOI combobox
+            self.pointComboBox.setCurrentIndex(0)  # Reset Facility combobox
+            self.roadsComboBox.setCurrentIndex(0)
+            self.barriersComboBox.setCurrentIndex(
+                0
+            )  # Reset Roads and Barriers comboboxes
         except Exception as e:
             self.log_to_textbox(f"Error initializing worker: {str(e)}")
             self.runButton.setEnabled(True)
-            return
 
     def closeEvent(self, event):
         """Handle the close event of the dock widget.
@@ -727,21 +738,21 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             if layer:
                 QgsProject.instance().removeMapLayer(layer)
             self.osm_layer_id = None
-        if (
-            hasattr(self, "aoi_layer_id") and self.aoi_layer_id
-        ):  # Remove AOI layer if it exists
-            layer = QgsProject.instance().mapLayer(self.aoi_layer_id)
-            if layer:
-                QgsProject.instance().removeMapLayer(layer)
-            self.aoi_layer_id = None
+        # if (
+        #     hasattr(self, "aoi_layer_id") and self.aoi_layer_id
+        # ):  # Remove AOI layer if it exists
+        #     layer = QgsProject.instance().mapLayer(self.aoi_layer_id)
+        #     if layer:
+        #         QgsProject.instance().removeMapLayer(layer)
+        #     self.aoi_layer_id = None
 
-        if (
-            hasattr(self, "facility_layer_id") and self.facility_layer_id
-        ):  # Remove Facility layer if it exists
-            layer = QgsProject.instance().mapLayer(self.facility_layer_id)
-            if layer:
-                QgsProject.instance().removeMapLayer(layer)
-            self.facility_layer_id = None
+        # if (
+        #     hasattr(self, "facility_layer_id") and self.facility_layer_id
+        # ):  # Remove Facility layer if it exists
+        #     layer = QgsProject.instance().mapLayer(self.facility_layer_id)
+        #     if layer:
+        #         QgsProject.instance().removeMapLayer(layer)
+        #     self.facility_layer_id = None
 
         if (
             hasattr(self, "draw_polygon_tool") and self.draw_polygon_tool
