@@ -99,5 +99,11 @@ You may wish to use a vector layer with predefined roads in the computation. To 
 You may also want to use vector layer with predefined barriers. Once again you just need to upload the layer to QGIS. There are no required fields for this vector layer. If you do not choose a layer then the barriers will pulled from Open Street Maps.
 
 #### Create Optional Surfaces
+The create optional surfaces checkbox allows for more rasters to be outputted from the computation. If **unchecked** two cost rasters will be outputted: Delivered Cost and Additional Treatment Cost. If **checked** seven rasters will be outputted: Delivered Cost, Additional Treatment Cost, Skidder Cost, Cable Cost, Hand Treatment Cost, Prescribed Fire Cost, and Potential Harvesting System.
+
+#### Run 
+When you are ready to run the analysis you may hit the run button. You need atleast an area of interest and one facility point for it to work. The progress bar and text box will provide updates for the analysis and notify you if any errors arise. The outputted rasters are automatically added to the QGIS layer panel. Rasters that exceed values of 1000 are automatically capped and the symbology is changed to red, green, and yellow for display purposes. The outputted rasters are TEMPORARY layers and will need to be exported/saved before closing QGIS.
+
+
 
 
