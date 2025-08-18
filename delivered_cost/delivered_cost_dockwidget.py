@@ -266,6 +266,16 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                     f"Failed to load layer: {layer_name}",
                 )
 
+    def zoom_to_us_extent_3857(self):
+        """Zoom the map canvas to an approximate extent of the continental U.S. in EPSG:3857."""
+        # Approximate extent for continental U.S. in EPSG:3857 (Web Mercator)
+        extent_3857 = QgsRectangle(-14000000, 2800000, -7000000, 6300000)
+
+        # Set extent and refresh canvas
+        canvas = iface.mapCanvas()
+        canvas.setExtent(extent_3857)
+        canvas.refresh()
+
     def on_layer_removed(self, layer_id):
         """Handle layer removal event.
         Args:
@@ -394,16 +404,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             geom = feature.geometry()
             self.facility_coords.append((geom.asPoint().x(), geom.asPoint().y()))
         return facility_layer.crs()
-
-    def zoom_to_us_extent_3857(self):
-        """Zoom the map canvas to an approximate extent of the continental U.S. in EPSG:3857."""
-        # Approximate extent for continental U.S. in EPSG:3857 (Web Mercator)
-        extent_3857 = QgsRectangle(-14000000, 2800000, -7000000, 6300000)
-
-        # Set extent and refresh canvas
-        canvas = iface.mapCanvas()
-        canvas.setExtent(extent_3857)
-        canvas.refresh()
 
     def on_layer_checkbox_toggled(self, checked):
         """Handle toggling of background layer checkboxes.
@@ -557,6 +557,7 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         """
         self.log_to_textbox("Delivered Cost Analysis completed successfully.")
         self.runButton.setEnabled(True)
+        i = 2
         try:
             for name, dest_path in result_dict.items():
                 layer = QgsRasterLayer(dest_path, name)
@@ -589,7 +590,10 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                         )
                         apply_capped_symbology(layer, cap_value=max_val)
 
-                QgsProject.instance().addMapLayer(layer)
+                QgsProject.instance().addMapLayer(layer, addToLegend=False)
+                QgsProject.instance().layerTreeRoot().insertLayer(i, layer)
+                i += 1
+
         except Exception as e:
             self.log_to_textbox(f"Error adding layers to project: {str(e)}")
 
