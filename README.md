@@ -92,7 +92,7 @@ For this plugin to work, QGIS must be installed via the **conda-forge** channel.
 
 5. **Install dependencies**: 
     ```bash
-    pip install raster_tools osmnx py3dep
+    pip install raster_tools osmnx py3dep elevation
     ```
 
 6. **Launch QGIS** from your conda environment:
