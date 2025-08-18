@@ -35,7 +35,7 @@ import numpy as np
 import py3dep
 
 # import tempfile
-
+# import rioxarray
 # import elevation
 
 
@@ -100,46 +100,96 @@ def get_osm_data(
 
 def get_3dep_data(sgeo, res=30, out_crs=None):
     """
-    Downloads 3dep data and returns a raster object.
+    Downloads DEM data (prefers 3DEP via py3dep, falls back to SRTM via elevation).
     Args:
         sgeo (Polygon): Shapely Polygon in EPSG:4326.
-        res (int): Resolution in meters.
+        res (int): Resolution in meters (py3dep only).
         out_crs (str): Optional target CRS.
     Returns:
         Raster: the downloaded DEM as a raster-tools Raster object.
-    Raises:
-        TypeError: If sgeo is not a Polygon.
-        ValueError: If sgeo is invalid or too small.
-        RuntimeError: If DEM download or reprojection fails.
     """
-    from shapely.validation import explain_validity
     from shapely.geometry import Polygon
+    from shapely.validation import explain_validity
 
     if not isinstance(sgeo, Polygon):
         raise TypeError(f"Expected shapely Polygon, got {type(sgeo)}")
     if not sgeo.is_valid:
         raise ValueError(f"Invalid input geometry: {explain_validity(sgeo)}")
+    if sgeo.is_empty:
+        raise ValueError("Empty input geometry")
+    if sgeo.area < 1e-8:
+        raise ValueError("Geometry too small to request DEM.")
 
+    # --- Try py3dep first ---
     try:
-        # Convert to target CRS (EPSG:3857, meters)
         sgeo_3857 = gpd.GeoSeries([sgeo], crs=4326).to_crs(3857)[0]
-
-        # Validate after reprojection
-        if not sgeo_3857.is_valid:
-            raise ValueError(
-                "Geometry invalid after reprojection:", explain_validity(sgeo_3857)
-            )
-        if sgeo_3857.is_empty:
-            raise ValueError("Geometry became empty after reprojection")
-
+        if not sgeo_3857.is_valid or sgeo_3857.is_empty:
+            raise ValueError("Geometry invalid/empty after reprojection")
         out_rs = py3dep.get_dem(sgeo_3857, res, 3857).expand_dims({"band": 1})
+        if out_crs is not None:
+            out_rs = out_rs.rio.reproject(out_crs)
+        return Raster(out_rs.chunk())
     except Exception as e:
-        raise RuntimeError(f"Failed to download DEM from py3dep: {e}") from e
+        print(f"WARNING: py3dep failed ({e}), falling back to elevation...")
 
-    if out_crs is not None:
-        out_rs = out_rs.rio.reproject(out_crs)
+    # --- Fallback: elevation ---
+    import tempfile, elevation, rioxarray
 
-    return Raster(out_rs.chunk())
+    minx, miny, maxx, maxy = sgeo.bounds
+    with tempfile.TemporaryDirectory() as tmpdir:
+        dem_path = f"{tmpdir}/clipped_dem.tif"
+        elevation.clip(
+            bounds=(minx, miny, maxx, maxy), output=dem_path, product="SRTM1"
+        )
+        elevation.clean()
+        da = rioxarray.open_rasterio(dem_path, masked=True).squeeze("band", drop=True)
+        if out_crs is not None:
+            da = da.rio.reproject(out_crs)
+        return Raster(da.chunk())
+
+
+# def get_3dep_data(sgeo, res=30, out_crs=None):
+#     """
+#     Downloads 3dep data and returns a raster object.
+#     Args:
+#         sgeo (Polygon): Shapely Polygon in EPSG:4326.
+#         res (int): Resolution in meters.
+#         out_crs (str): Optional target CRS.
+#     Returns:
+#         Raster: the downloaded DEM as a raster-tools Raster object.
+#     Raises:
+#         TypeError: If sgeo is not a Polygon.
+#         ValueError: If sgeo is invalid or too small.
+#         RuntimeError: If DEM download or reprojection fails.
+#     """
+#     from shapely.validation import explain_validity
+#     from shapely.geometry import Polygon
+
+#     if not isinstance(sgeo, Polygon):
+#         raise TypeError(f"Expected shapely Polygon, got {type(sgeo)}")
+#     if not sgeo.is_valid:
+#         raise ValueError(f"Invalid input geometry: {explain_validity(sgeo)}")
+
+#     try:
+#         # Convert to target CRS (EPSG:3857, meters)
+#         sgeo_3857 = gpd.GeoSeries([sgeo], crs=4326).to_crs(3857)[0]
+
+#         # Validate after reprojection
+#         if not sgeo_3857.is_valid:
+#             raise ValueError(
+#                 "Geometry invalid after reprojection:", explain_validity(sgeo_3857)
+#             )
+#         if sgeo_3857.is_empty:
+#             raise ValueError("Geometry became empty after reprojection")
+
+#         out_rs = py3dep.get_dem(sgeo_3857, res, 3857).expand_dims({"band": 1})
+#     except Exception as e:
+#         raise RuntimeError(f"Failed to download DEM from py3dep: {e}") from e
+
+#     if out_crs is not None:
+#         out_rs = out_rs.rio.reproject(out_crs)
+
+#     return Raster(out_rs.chunk())
 
 
 # def get_3dep_data(sgeo: Polygon, res=30, out_crs=None) -> Raster:
