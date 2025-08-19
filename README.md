@@ -54,10 +54,15 @@ The installation method depends on your operating system. `osmnx` and `py3dep` a
     ```
     Replace `<your_numpy_version>` with version from step 2 (e.g., 1.26.4)
 
-4. **Install the plugin**:
+4. **Install the plugin from zip**:
     - Download the ZIP from this repository
     - In QGIS: `Plugins → Manage and Install Plugins → Install from ZIP`
     - Select the downloaded ZIP file
+
+5. **Install the plugin in QGIS**:
+    - In QGIS: `Plugins → Manage and Install Plugins → All` 
+    - Search `Raster Tools`
+    - Select Install
 
 ---
 
@@ -100,10 +105,15 @@ For this plugin to work, QGIS must be installed via the **conda-forge** channel.
     qgis
     ```
 
-7. **Install the plugin**:
+7. **Install the plugin from zip**:
     - Download the ZIP from this repository
     - In QGIS: `Plugins → Manage and Install Plugins → Install from ZIP`
     - Select the downloaded ZIP file
+
+8. **Install the plugin in QGIS**
+    - In QGIS: `Plugins → Manage and Install Plugins → All` 
+    - Search `Raster Tools`
+    - Select Install
 
 ---
 
