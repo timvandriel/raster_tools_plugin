@@ -244,12 +244,13 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
     def add_osm_basemap(self):
         """Add OpenStreetMap layer if not already added."""
         if getattr(self, "osm_layer_id", None) is None:
-            # Set project CRS to 3857 (Web Mercator)
-            QMessageBox.information(
-                None, "Adding OSM Basemap", "Setting project CRS to EPSG:3857"
-            )
-            crs = QgsCoordinateReferenceSystem("EPSG:3857")
-            QgsProject.instance().setCrs(crs)
+            if QgsProject.instance().crs().authid() != "EPSG:3857":
+                # Set project CRS to 3857 (Web Mercator)
+                QMessageBox.information(
+                    None, "Adding OSM Basemap", "Setting project CRS to EPSG:3857"
+                )
+                crs = QgsCoordinateReferenceSystem("EPSG:3857")
+                QgsProject.instance().setCrs(crs)
             layer_name = "OSM Standard"
             url = "type=xyz&zmin=0&zmax=19&url=http://tile.openstreetmap.org/{z}/{x}/{y}.png"
             layer = QgsRasterLayer(url, layer_name, "wms")
