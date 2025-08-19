@@ -610,6 +610,15 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         """Run the delivered cost analysis with the selected AOI and Facility layers."""
         self.plainTextEdit.clear()  # Clear previous log messages
         aoi_crs = self.get_selected_aoi_geometry()  # Get AOI geometry and CRS
+        if (
+            not hasattr(self, "aoi_geometry") or self.aoi_geometry is None
+        ):  # If AOI layer is not defined
+            QMessageBox.warning(
+                self,
+                "No AOI Polygon",
+                "Please draw an area of interest polygon before running the analysis.",
+            )
+            return
         if aoi_crs is None:  # If AOI layer crs is None, use project CRS
             study_area_coords = qgs_to_coords_list_epsg4326(self.aoi_geometry)
         else:
@@ -620,6 +629,13 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         facility_crs = (
             self.get_selected_facility_coords()
         )  # Get Facility coordinates and CRS
+        if not self.facility_coords:  # If no facility points are selected
+            QMessageBox.warning(
+                self,
+                "No Facility Point",
+                "Please pick a facility point before running the analysis.",
+            )
+            return
         if facility_crs is None:  # If Facility layer crs is None, use project CRS
             saw_coords = [
                 qgs_to_coords_list_epsg4326(QgsPointXY(pt[0], pt[1]))
@@ -632,22 +648,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 )
                 for pt in self.facility_coords
             ]
-        if not self.facility_coords:  # If no facility points are selected
-            QMessageBox.warning(
-                self,
-                "No Facility Point",
-                "Please pick a facility point before running the analysis.",
-            )
-            return
-        elif (
-            not hasattr(self, "aoi_geometry") or self.aoi_geometry is None
-        ):  # If AOI layer is not defined
-            QMessageBox.warning(
-                self,
-                "No AOI Polygon",
-                "Please draw an area of interest polygon before running the analysis.",
-            )
-            return
         if self.roadsComboBox.currentData() is not None:  # If roads layer is selected
             layer = QgsProject.instance().mapLayer(self.roadsComboBox.currentData())
             if layer_correct_fields(layer):
@@ -742,21 +742,6 @@ class DeliveredCostDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             if layer:
                 QgsProject.instance().removeMapLayer(layer)
             self.osm_layer_id = None
-        # if (
-        #     hasattr(self, "aoi_layer_id") and self.aoi_layer_id
-        # ):  # Remove AOI layer if it exists
-        #     layer = QgsProject.instance().mapLayer(self.aoi_layer_id)
-        #     if layer:
-        #         QgsProject.instance().removeMapLayer(layer)
-        #     self.aoi_layer_id = None
-
-        # if (
-        #     hasattr(self, "facility_layer_id") and self.facility_layer_id
-        # ):  # Remove Facility layer if it exists
-        #     layer = QgsProject.instance().mapLayer(self.facility_layer_id)
-        #     if layer:
-        #         QgsProject.instance().removeMapLayer(layer)
-        #     self.facility_layer_id = None
 
         if (
             hasattr(self, "draw_polygon_tool") and self.draw_polygon_tool
