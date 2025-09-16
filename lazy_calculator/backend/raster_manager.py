@@ -21,6 +21,13 @@
  ***************************************************************************/
 """
 
+from .exceptions import (
+    RasterToolsUnavailableError,
+    LayerNotFoundError,
+    BandMismatchError,
+    RasterExtentError,
+)
+
 try:
     import raster_tools
 except ImportError:
@@ -30,12 +37,6 @@ import xarray as xr
 import numpy as np
 import math
 from .layer_manager import LayerManager
-from .exceptions import (
-    RasterToolsUnavailableError,
-    LayerNotFoundError,
-    BandMismatchError,
-    RasterExtentError,
-)
 from .lazy_manager import get_lazy_layer_registry
 import re
 from shapely import intersects
