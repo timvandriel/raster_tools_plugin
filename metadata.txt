@@ -3,7 +3,7 @@ name=Raster Tools
 qgisMinimumVersion=3.40
 description=High-performance raster calculator and delivered cost analysis tool. Requires QGIS installed via conda-forge (Mac/Linux) or OSGeo4W Network Installer (Windows). Dependencies: raster_tools, osmnx, and py3dep.
 
-version=1.0.0
+version=1.0.1
 author=Tim Van Driel
 email=timothy.vandriel@gmail.com
 
