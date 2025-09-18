@@ -20,3 +20,6 @@ icon=icon.png
 experimental=True
 deprecated=False
 server=False
+
+changelog=1.0.0 - Initial release
+    1.0.1 - Minor bug fixes and improvements
